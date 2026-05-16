@@ -1,5 +1,6 @@
+import { useRef, useEffect, useState } from 'react';
 import { Utensils, Wallet, Leaf, Globe, TrendingUp, Dumbbell, BarChart3, Bed, MessageCircle, Search } from 'lucide-react';
-import { useInView, useMouse3D } from '../hooks/useAnimations';
+import { useInView } from '../hooks/useAnimations';
 
 function FeatureCard({ icon: Icon, title, description, color }: {
   icon: React.ElementType;
@@ -8,13 +9,38 @@ function FeatureCard({ icon: Icon, title, description, color }: {
   color: string;
 }) {
   const { ref, isInView } = useInView(0.1);
-  const { ref: mouseRef, style } = useMouse3D();
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el) return;
+
+    const onMove = (e: MouseEvent) => {
+      const rect = el.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width - 0.5;
+      const y = (e.clientY - rect.top) / rect.height - 0.5;
+      setTilt({ x: x * 8, y: -y * 8 });
+    };
+
+    const onLeave = () => setTilt({ x: 0, y: 0 });
+
+    el.addEventListener('mousemove', onMove);
+    el.addEventListener('mouseleave', onLeave);
+    return () => {
+      el.removeEventListener('mousemove', onMove);
+      el.removeEventListener('mouseleave', onLeave);
+    };
+  }, []);
 
   return (
     <div
-      ref={(el) => { (ref as React.MutableRefObject<HTMLDivElement | null>).current = el; (mouseRef as React.MutableRefObject<HTMLDivElement | null>).current = el; }}
-      style={style}
-      className={`glass rounded-2xl p-6 lg:p-8 card-3d group transition-all duration-700 ${
+      ref={(el) => {
+        (ref as React.MutableRefObject<HTMLDivElement | null>).current = el;
+        (cardRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
+      }}
+      style={{ transform: `perspective(1000px) rotateY(${tilt.x}deg) rotateX(${tilt.y}deg)` }}
+      className={`glass rounded-2xl p-6 lg:p-8 group transition-all duration-700 ${
         isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
       }`}
     >

@@ -98,9 +98,11 @@ export default function WorkoutGeneratorPage() {
       equipment_required: equipment !== 'none',
     }));
 
-    const { error: err } = await supabase.from('workouts').insert(inserts);
-    if (err) { setError(err.message); return; }
-    setSaved(true);
+    try {
+      const { error: err } = await supabase.from('workouts').insert(inserts);
+      if (err) { setError(err.message); return; }
+      setSaved(true);
+    } catch { setError('Failed to save workout'); }
   };
 
   return (

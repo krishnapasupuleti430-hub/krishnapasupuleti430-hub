@@ -79,75 +79,83 @@ export default function DashboardPage() {
 
   const fetchTracking = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from('daily_tracking')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('tracking_date', today)
-      .maybeSingle();
-
-    if (data) {
-      setTracking(data);
-    } else {
-      const { data: newData } = await supabase
+    try {
+      const { data } = await supabase
         .from('daily_tracking')
-        .insert({
-          user_id: user.id,
-          tracking_date: today,
-          calories_consumed: 0,
-          protein_consumed: 0,
-          water_glasses: 0,
-          workout_completed: false,
-        })
-        .select()
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('tracking_date', today)
         .maybeSingle();
-      if (newData) setTracking(newData);
-    }
+
+      if (data) {
+        setTracking(data);
+      } else {
+        const { data: newData } = await supabase
+          .from('daily_tracking')
+          .insert({
+            user_id: user.id,
+            tracking_date: today,
+            calories_consumed: 0,
+            protein_consumed: 0,
+            water_glasses: 0,
+            workout_completed: false,
+          })
+          .select()
+          .maybeSingle();
+        if (newData) setTracking(newData);
+      }
+    } catch { /* tracking fetch failed */ }
   }, [user, today]);
 
   const fetchSavedMeals = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from('meals')
-      .select('id, name, calories, protein_g, meal_type, created_at')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(10);
-    setSavedMeals(data || []);
+    try {
+      const { data } = await supabase
+        .from('meals')
+        .select('id, name, calories, protein_g, meal_type, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(10);
+      setSavedMeals(data || []);
+    } catch { setSavedMeals([]); }
   }, [user]);
 
   const fetchSavedWorkouts = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from('workouts')
-      .select('id, name, difficulty, target_muscle, sets, reps, created_at')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(10);
-    setSavedWorkouts(data || []);
+    try {
+      const { data } = await supabase
+        .from('workouts')
+        .select('id, name, difficulty, target_muscle, sets, reps, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(10);
+      setSavedWorkouts(data || []);
+    } catch { setSavedWorkouts([]); }
   }, [user]);
 
   const fetchStreak = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from('daily_tracking')
-      .select('tracking_date, calories_consumed')
-      .eq('user_id', user.id)
-      .gt('calories_consumed', 0)
-      .order('tracking_date', { ascending: false })
-      .limit(30);
+    try {
+      const { data } = await supabase
+        .from('daily_tracking')
+        .select('tracking_date, calories_consumed')
+        .eq('user_id', user.id)
+        .gt('calories_consumed', 0)
+        .order('tracking_date', { ascending: false })
+        .limit(30);
 
-    if (data && data.length > 0) {
-      let streak = 0;
-      const d = new Date();
-      for (let i = 0; i < 30; i++) {
-        const dateStr = d.toISOString().split('T')[0];
-        const found = data.find((t) => t.tracking_date === dateStr);
-        if (found) { streak++; } else if (i > 0) { break; }
-        d.setDate(d.getDate() - 1);
+      if (data && data.length > 0) {
+        let streak = 0;
+        const d = new Date();
+        for (let i = 0; i < 30; i++) {
+          const dateStr = d.toISOString().split('T')[0];
+          const found = data.find((t) => t.tracking_date === dateStr);
+          if (found) { streak++; } else if (i > 0) { break; }
+          d.setDate(d.getDate() - 1);
+        }
+        setStreakCount(streak);
       }
-      setStreakCount(streak);
-    }
+    } catch { /* streak fetch failed */ }
   }, [user]);
 
   useEffect(() => {
@@ -160,13 +168,15 @@ export default function DashboardPage() {
   const updateTracking = async (updates: Partial<DailyTracking>) => {
     if (!user || !tracking) return;
     setSaving(true);
-    const { data } = await supabase
-      .from('daily_tracking')
-      .update(updates)
-      .eq('id', tracking.id)
-      .select()
-      .maybeSingle();
-    if (data) setTracking(data);
+    try {
+      const { data } = await supabase
+        .from('daily_tracking')
+        .update(updates)
+        .eq('id', tracking.id)
+        .select()
+        .maybeSingle();
+      if (data) setTracking(data);
+    } catch { /* update failed */ }
     setSaving(false);
   };
 

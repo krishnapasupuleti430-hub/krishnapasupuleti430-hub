@@ -99,9 +99,11 @@ export default function MealGeneratorPage() {
       ingredients: m.ingredients,
     }));
 
-    const { error: err } = await supabase.from('meals').insert(inserts);
-    if (err) { setError(err.message); return; }
-    setSaved(true);
+    try {
+      const { error: err } = await supabase.from('meals').insert(inserts);
+      if (err) { setError(err.message); return; }
+      setSaved(true);
+    } catch { setError('Failed to save meals'); }
   };
 
   const totalCalories = meals.reduce((sum, m) => sum + m.calories, 0);

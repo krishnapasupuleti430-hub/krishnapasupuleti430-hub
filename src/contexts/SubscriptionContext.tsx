@@ -3,7 +3,7 @@ import { useAuth } from './AuthContext';
 
 type PlanTier = 'free' | 'student' | 'pro' | 'elite';
 
-const PLAN_LIMITS: Record<PlanTier, { aiGenerationsPerDay: number; features: string[] }> = {
+const PLAN_LIMITS: Record<string, { aiGenerationsPerDay: number; features: string[] }> = {
   free: {
     aiGenerationsPerDay: 3,
     features: ['basic_tracking', 'limited_ai', 'basic_workouts'],
@@ -17,9 +17,16 @@ const PLAN_LIMITS: Record<PlanTier, { aiGenerationsPerDay: number; features: str
     features: ['advanced_ai_meals', 'personalized_transformations', 'smart_analytics', 'advanced_workouts', 'ai_body_insights', 'premium_dashboards'],
   },
   elite: {
-    aiGenerationsPerDay: Infinity,
+    aiGenerationsPerDay: 999,
     features: ['elite_coaching', 'premium_transformation', 'unlimited_ai', 'advanced_analytics', 'priority_support', 'exclusive_plans', 'future_features'],
   },
+};
+
+const ALL_FEATURES_BY_PLAN: Record<string, string[]> = {
+  free: [...PLAN_LIMITS.free.features],
+  student: [...PLAN_LIMITS.free.features, ...PLAN_LIMITS.student.features],
+  pro: [...PLAN_LIMITS.free.features, ...PLAN_LIMITS.student.features, ...PLAN_LIMITS.pro.features],
+  elite: [...PLAN_LIMITS.free.features, ...PLAN_LIMITS.student.features, ...PLAN_LIMITS.pro.features, ...PLAN_LIMITS.elite.features],
 };
 
 interface SubscriptionContextType {
@@ -40,16 +47,11 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const { profile } = useAuth();
   const [aiGenerationsUsed, setAiGenerationsUsed] = useState(0);
 
-  const plan: PlanTier = (profile?.subscription_plan as PlanTier) || 'free';
+  const plan: PlanTier = (['free', 'student', 'pro', 'elite'].includes(profile?.subscription_plan || '') ? profile?.subscription_plan : 'free') as PlanTier;
   const limits = PLAN_LIMITS[plan];
 
   const canUseFeature = useCallback((feature: string) => {
-    if (plan === ('elite' as PlanTier)) return true;
-    const allFeatures = [...PLAN_LIMITS.free.features];
-    if (plan === ('student' as PlanTier) || plan === ('pro' as PlanTier) || plan === ('elite' as PlanTier)) allFeatures.push(...PLAN_LIMITS.student.features);
-    if (plan === ('pro' as PlanTier) || plan === ('elite' as PlanTier)) allFeatures.push(...PLAN_LIMITS.pro.features);
-    if (plan === ('elite' as PlanTier)) allFeatures.push(...PLAN_LIMITS.elite.features);
-    return allFeatures.includes(feature);
+    return (ALL_FEATURES_BY_PLAN[plan] || []).includes(feature);
   }, [plan]);
 
   const consumeAIGeneration = useCallback(() => {

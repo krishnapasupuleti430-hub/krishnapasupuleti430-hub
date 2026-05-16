@@ -30,7 +30,8 @@ export default function ParticleBackground() {
     resize();
     window.addEventListener('resize', resize);
 
-    for (let i = 0; i < 60; i++) {
+    const count = Math.min(60, Math.floor(window.innerWidth / 25));
+    for (let i = 0; i < count; i++) {
       particles.push({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
@@ -43,36 +44,42 @@ export default function ParticleBackground() {
     }
 
     const animate = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      try {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      particles.forEach((p, i) => {
-        p.x += p.vx;
-        p.y += p.vy;
+        for (let i = 0; i < particles.length; i++) {
+          const p = particles[i];
+          p.x += p.vx;
+          p.y += p.vy;
 
-        if (p.x < 0) p.x = canvas.width;
-        if (p.x > canvas.width) p.x = 0;
-        if (p.y < 0) p.y = canvas.height;
-        if (p.y > canvas.height) p.y = 0;
+          if (p.x < 0) p.x = canvas.width;
+          if (p.x > canvas.width) p.x = 0;
+          if (p.y < 0) p.y = canvas.height;
+          if (p.y > canvas.height) p.y = 0;
 
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fillStyle = `${p.color}${p.opacity})`;
-        ctx.fill();
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fillStyle = `${p.color}${p.opacity})`;
+          ctx.fill();
 
-        for (let j = i + 1; j < particles.length; j++) {
-          const dx = particles[j].x - p.x;
-          const dy = particles[j].y - p.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < 150) {
-            ctx.beginPath();
-            ctx.moveTo(p.x, p.y);
-            ctx.lineTo(particles[j].x, particles[j].y);
-            ctx.strokeStyle = `rgba(220,38,38,${0.05 * (1 - dist / 150)})`;
-            ctx.lineWidth = 0.5;
-            ctx.stroke();
+          for (let j = i + 1; j < particles.length; j++) {
+            const dx = particles[j].x - p.x;
+            const dy = particles[j].y - p.y;
+            const dist = dx * dx + dy * dy;
+            if (dist < 22500) {
+              ctx.beginPath();
+              ctx.moveTo(p.x, p.y);
+              ctx.lineTo(particles[j].x, particles[j].y);
+              ctx.strokeStyle = `rgba(220,38,38,${0.05 * (1 - Math.sqrt(dist) / 150)})`;
+              ctx.lineWidth = 0.5;
+              ctx.stroke();
+            }
           }
         }
-      });
+      } catch {
+        cancelAnimationFrame(animationId);
+        return;
+      }
 
       animationId = requestAnimationFrame(animate);
     };
