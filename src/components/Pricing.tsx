@@ -1,8 +1,9 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Check, Star, Crown, Zap, Shield } from 'lucide-react';
 import { useInView } from '../hooks/useAnimations';
 
-function PricingCard({ name, price, annual, save, features, popular, elite, delay }: {
+function PricingCard({ name, price, annual, save, features, popular, elite }: {
   name: string;
   price: string;
   annual: string;
@@ -10,7 +11,6 @@ function PricingCard({ name, price, annual, save, features, popular, elite, dela
   features: string[];
   popular?: boolean;
   elite?: boolean;
-  delay: number;
 }) {
   const { ref, isInView } = useInView(0.1);
   const [annualToggle, setAnnualToggle] = useState(false);
@@ -67,7 +67,7 @@ function PricingCard({ name, price, annual, save, features, popular, elite, dela
         ))}
       </div>
 
-      <button className={`w-full py-3.5 rounded-xl font-semibold text-sm transition-all duration-300 ${
+      <Link to="/pricing" className={`w-full py-3.5 rounded-xl font-semibold text-sm transition-all duration-300 block text-center ${
         popular
           ? 'btn-primary'
           : elite
@@ -75,7 +75,7 @@ function PricingCard({ name, price, annual, save, features, popular, elite, dela
           : 'glass hover:bg-white/10 text-caesar-white'
       }`}>
         {popular ? 'Start Free Trial' : elite ? 'Go Elite' : 'Get Started'}
-      </button>
+      </Link>
 
       {popular && (
         <div className="mt-4 flex items-center justify-center gap-1 text-[10px] text-caesar-muted">
@@ -178,8 +178,8 @@ export default function Pricing() {
         </div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 items-start">
-          {plans.map((plan, i) => (
-            <PricingCard key={plan.name} {...plan} delay={i * 100} />
+          {plans.map((plan) => (
+            <PricingCard key={plan.name} {...plan} />
           ))}
         </div>
 

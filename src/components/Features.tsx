@@ -1,12 +1,11 @@
 import { Utensils, Wallet, Leaf, Globe, TrendingUp, Dumbbell, BarChart3, Bed, MessageCircle, Search } from 'lucide-react';
 import { useInView, useMouse3D } from '../hooks/useAnimations';
 
-function FeatureCard({ icon: Icon, title, description, color, delay }: {
+function FeatureCard({ icon: Icon, title, description, color }: {
   icon: React.ElementType;
   title: string;
   description: string;
   color: string;
-  delay: number;
 }) {
   const { ref, isInView } = useInView(0.1);
   const { ref: mouseRef, style } = useMouse3D();
@@ -124,8 +123,8 @@ export default function Features() {
         </div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 lg:gap-6">
-          {features.map((feature, i) => (
-            <FeatureCard key={feature.title} {...feature} delay={i * 100} />
+          {features.map((feature) => (
+            <FeatureCard key={feature.title} {...feature} />
           ))}
         </div>
       </div>

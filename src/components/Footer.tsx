@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { Zap, Globe } from 'lucide-react';
 
 const footerLinks = [
@@ -27,7 +28,7 @@ export default function Footer() {
       <div className="relative z-10 container-premium mx-auto">
         <div className="grid sm:grid-cols-2 lg:grid-cols-6 gap-8 mb-12">
           <div className="lg:col-span-2">
-            <a href="#" className="flex items-center gap-2 mb-4">
+            <Link to="/" className="flex items-center gap-2 mb-4">
               <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-caesar-red to-caesar-gold flex items-center justify-center glow-red">
                 <Zap className="w-5 h-5 text-white" />
               </div>
@@ -35,7 +36,7 @@ export default function Footer() {
                 <span className="text-caesar-white">Caesar</span>
                 <span className="text-gradient-red ml-1">AI</span>
               </span>
-            </a>
+            </Link>
             <p className="text-sm text-caesar-muted leading-relaxed mb-4 max-w-xs">
               Your AI Muscle Gain & Diet System. Personalized diet plans, budget meals, workouts, and AI coaching for everyone.
             </p>

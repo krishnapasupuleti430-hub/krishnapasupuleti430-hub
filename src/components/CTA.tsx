@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { ArrowRight, Sparkles, Zap } from 'lucide-react';
 import { useInView, useCountUp } from '../hooks/useAnimations';
 
@@ -35,14 +36,14 @@ export default function CTA() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-            <button className="btn-primary flex items-center justify-center gap-2 text-base px-10 py-4">
+            <Link to="/signup" className="btn-primary flex items-center justify-center gap-2 text-base px-10 py-4">
               Start Free
               <ArrowRight className="w-4 h-4" />
-            </button>
-            <button className="btn-gold flex items-center justify-center gap-2 text-base px-10 py-4">
+            </Link>
+            <Link to="/meal-generator" className="btn-gold flex items-center justify-center gap-2 text-base px-10 py-4">
               <Sparkles className="w-4 h-4" />
               Generate My AI Diet
-            </button>
+            </Link>
           </div>
 
           <p className="text-xs text-caesar-muted">

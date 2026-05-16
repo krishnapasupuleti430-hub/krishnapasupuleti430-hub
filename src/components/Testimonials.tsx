@@ -68,7 +68,7 @@ const testimonials: Testimonial[] = [
   },
 ];
 
-function TestimonialCard({ testimonial, index }: { testimonial: Testimonial; index: number }) {
+function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
   const { ref, isInView } = useInView(0.1);
 
   return (
@@ -135,8 +135,8 @@ export default function Testimonials() {
         </div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {testimonials.map((testimonial, i) => (
-            <TestimonialCard key={testimonial.name} testimonial={testimonial} index={i} />
+          {testimonials.map((testimonial) => (
+            <TestimonialCard key={testimonial.name} testimonial={testimonial} />
           ))}
         </div>
       </div>

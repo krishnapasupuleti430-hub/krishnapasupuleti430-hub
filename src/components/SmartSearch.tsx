@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Search, Sparkles, Flame, Dumbbell, Clock } from 'lucide-react';
 import { useInView } from '../hooks/useAnimations';
 
@@ -56,12 +57,12 @@ export default function SmartSearch() {
                   className="w-full bg-caesar-dark border border-caesar-border rounded-xl pl-11 pr-4 py-3.5 text-sm text-caesar-white placeholder:text-caesar-muted focus:outline-none focus:border-caesar-gold/50 transition-colors"
                 />
               </div>
-              <button
-                onClick={handleSearch}
-                className="btn-gold px-6 py-3.5 text-sm"
+              <Link
+                to="/meal-generator"
+                className="btn-gold px-6 py-3.5 text-sm inline-flex items-center"
               >
                 Generate
-              </button>
+              </Link>
             </div>
 
             <div className="flex flex-wrap gap-2 mb-6">

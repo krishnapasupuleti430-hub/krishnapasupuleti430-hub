@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { ArrowRight, Sparkles, Flame, Dumbbell, Utensils, TrendingUp } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ArrowRight, Sparkles, Dumbbell, Utensils } from 'lucide-react';
 import { useCountUp, useInView } from '../hooks/useAnimations';
 
 function AnimatedCounter({ end, suffix = '', prefix = '' }: { end: number; suffix?: string; prefix?: string }) {
@@ -234,14 +235,14 @@ export default function Hero() {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 mb-12">
-              <button className="btn-primary flex items-center justify-center gap-2 text-base">
+              <Link to="/signup" className="btn-primary flex items-center justify-center gap-2 text-base">
                 Start Free
                 <ArrowRight className="w-4 h-4" />
-              </button>
-              <button className="btn-gold flex items-center justify-center gap-2 text-base">
+              </Link>
+              <Link to="/meal-generator" className="btn-gold flex items-center justify-center gap-2 text-base">
                 <Sparkles className="w-4 h-4" />
                 Generate My AI Diet
-              </button>
+              </Link>
             </div>
 
             <div ref={statsRef} className="grid grid-cols-3 gap-6">
