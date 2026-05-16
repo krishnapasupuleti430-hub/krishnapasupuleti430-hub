@@ -1,59 +1,22 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabase';
-import { CheckCircle, Zap, ArrowRight, Loader2 } from 'lucide-react';
+import { CheckCircle, Zap, ArrowRight } from 'lucide-react';
 
 export default function PaymentSuccessPage() {
   const [searchParams] = useSearchParams();
   const { user, refreshProfile } = useAuth();
-  const [loading, setLoading] = useState(true);
   const [plan, setPlan] = useState('');
 
   useEffect(() => {
-    const verify = async () => {
-      const sessionId = searchParams.get('session_id');
-      if (!sessionId || !user) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/check-subscription`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session?.access_token}`,
-          },
-          body: JSON.stringify({ sessionId }),
-        });
-
-        const data = await response.json();
-        if (data.plan) {
-          setPlan(data.plan);
-          await refreshProfile();
-        }
-      } catch {
-        // verification failed, but payment may still have gone through
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    verify();
+    const planParam = searchParams.get('plan');
+    if (planParam) {
+      setPlan(planParam);
+    }
+    if (user) {
+      refreshProfile();
+    }
   }, [searchParams, user, refreshProfile]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-caesar-black flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-10 h-10 text-caesar-red animate-spin mx-auto mb-4" />
-          <p className="text-sm text-caesar-muted">Verifying your payment...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-caesar-black flex items-center justify-center px-4">

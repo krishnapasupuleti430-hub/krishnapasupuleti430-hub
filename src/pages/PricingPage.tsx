@@ -1,8 +1,38 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Check, Star, Crown, Zap, Shield, Loader2 } from 'lucide-react';
 import { useInView } from '../hooks/useAnimations';
+
+declare global {
+  interface Window {
+    Razorpay: new (options: RazorpayOptions) => RazorpayInstance;
+  }
+}
+
+interface RazorpayOptions {
+  key: string;
+  amount: number;
+  currency: string;
+  name: string;
+  description: string;
+  order_id: string;
+  prefill: { name: string; email: string; contact: string };
+  theme: { color: string };
+  handler: (response: RazorpayResponse) => void;
+  modal?: { ondismiss?: () => void };
+}
+
+interface RazorpayInstance {
+  open: () => void;
+}
+
+interface RazorpayResponse {
+  razorpay_payment_id: string;
+  razorpay_order_id: string;
+  razorpay_signature: string;
+}
 
 const plans = [
   {
@@ -48,16 +78,38 @@ export default function PricingPage() {
   const { ref, isInView } = useInView(0.1);
   const [billing, setBilling] = useState<'monthly' | 'yearly'>('monthly');
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const navigate = useNavigate();
+
+  const loadRazorpayScript = (): Promise<boolean> => {
+    return new Promise((resolve) => {
+      if (window.Razorpay) {
+        resolve(true);
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
 
   const handleSubscribe = async (planName: string) => {
     if (planName === 'Free') return;
     if (!user) {
-      window.location.href = '/signup';
+      navigate('/signup');
       return;
     }
 
     setLoadingPlan(planName);
+
     try {
+      const scriptLoaded = await loadRazorpayScript();
+      if (!scriptLoaded) {
+        setLoadingPlan(null);
+        return;
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout`, {
         method: 'POST',
@@ -74,9 +126,60 @@ export default function PricingPage() {
       });
 
       const data = await response.json();
-      if (data.url) {
-        window.location.href = data.url;
+
+      if (data.error) {
+        setLoadingPlan(null);
+        return;
       }
+
+      const options: RazorpayOptions = {
+        key: data.key,
+        amount: data.amount,
+        currency: data.currency,
+        name: 'Caesar AI',
+        description: `${planName} Plan - ${billing === 'yearly' ? 'Yearly' : 'Monthly'}`,
+        order_id: data.orderId,
+        prefill: {
+          name: '',
+          email: data.prefill?.email || user.email || '',
+          contact: data.prefill?.contact || '',
+        },
+        theme: { color: '#dc2626' },
+        handler: async (response: RazorpayResponse) => {
+          try {
+            const verifyRes = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/check-subscription`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session?.access_token}`,
+              },
+              body: JSON.stringify({
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpayOrderId: response.razorpay_order_id,
+                razorpaySignature: response.razorpay_signature,
+                userId: user.id,
+                plan: planName.toLowerCase(),
+                billing,
+              }),
+            });
+
+            const verifyData = await verifyRes.json();
+            if (verifyData.status === 'active') {
+              navigate('/payment-success?plan=' + planName.toLowerCase());
+            }
+          } catch {
+            navigate('/payment-success?plan=' + planName.toLowerCase());
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            setLoadingPlan(null);
+          },
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
     } catch {
       setLoadingPlan(null);
     }

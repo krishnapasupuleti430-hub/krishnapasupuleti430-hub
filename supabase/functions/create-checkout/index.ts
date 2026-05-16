@@ -6,10 +6,10 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
-const PLANS: Record<string, { monthly: string; yearly: string }> = {
-  student: { monthly: "price_student_monthly", yearly: "price_student_yearly" },
-  pro: { monthly: "price_pro_monthly", yearly: "price_pro_yearly" },
-  elite: { monthly: "price_elite_monthly", yearly: "price_elite_yearly" },
+const PLAN_AMOUNTS: Record<string, { monthly: number; yearly: number }> = {
+  student: { monthly: 9900, yearly: 102900 },
+  pro: { monthly: 15900, yearly: 159900 },
+  elite: { monthly: 19900, yearly: 189900 },
 };
 
 Deno.serve(async (req: Request) => {
@@ -19,49 +19,68 @@ Deno.serve(async (req: Request) => {
 
   try {
     const { plan, billing, userId, email } = await req.json();
-    const planConfig = PLANS[plan];
+    const planAmounts = PLAN_AMOUNTS[plan];
 
-    if (!planConfig) {
+    if (!planAmounts) {
       return new Response(
         JSON.stringify({ error: "Invalid plan" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const priceId = billing === "yearly" ? planConfig.yearly : planConfig.monthly;
-    const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY");
+    const RAZORPAY_KEY_ID = Deno.env.get("RAZORPAY_KEY_ID");
+    const RAZORPAY_KEY_SECRET = Deno.env.get("RAZORPAY_KEY_SECRET");
 
-    if (!STRIPE_SECRET_KEY) {
+    if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
       return new Response(
-        JSON.stringify({ error: "Stripe not configured" }),
+        JSON.stringify({ error: "Razorpay not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const session = await fetch("https://api.stripe.com/v1/checkout/sessions", {
+    const amount = billing === "yearly" ? planAmounts.yearly : planAmounts.monthly;
+    const receipt = `caesar_${plan}_${billing}_${Date.now()}`;
+
+    const auth = btoa(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`);
+
+    const orderRes = await fetch("https://api.razorpay.com/v1/orders", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${STRIPE_SECRET_KEY}`,
-        "Content-Type": "application/x-www-form-urlencoded",
+        "Authorization": `Basic ${auth}`,
+        "Content-Type": "application/json",
       },
-      body: new URLSearchParams({
-        "mode": "subscription",
-        "payment_method_types[0]": "card",
-        "line_items[0][price]": priceId,
-        "line_items[0][quantity]": "1",
-        "success_url": `${req.headers.get("origin")}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-        "cancel_url": `${req.headers.get("origin")}/pricing`,
-        "customer_email": email,
-        "metadata[user_id]": userId,
-        "metadata[plan]": plan,
-        "metadata[billing]": billing,
+      body: JSON.stringify({
+        amount,
+        currency: "INR",
+        receipt,
+        notes: {
+          user_id: userId,
+          plan,
+          billing,
+          email,
+        },
       }),
     });
 
-    const sessionData = await session.json();
+    const order = await orderRes.json();
+
+    if (order.error) {
+      return new Response(
+        JSON.stringify({ error: order.error.description || "Order creation failed" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     return new Response(
-      JSON.stringify({ url: sessionData.url, sessionId: sessionData.id }),
+      JSON.stringify({
+        orderId: order.id,
+        amount: order.amount,
+        currency: order.currency,
+        key: RAZORPAY_KEY_ID,
+        plan,
+        billing,
+        prefill: { name: "", email, contact: "" },
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {

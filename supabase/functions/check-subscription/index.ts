@@ -12,28 +12,29 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { sessionId } = await req.json();
-    const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY");
+    const { razorpayPaymentId, razorpayOrderId, razorpaySignature, userId, plan, billing } = await req.json();
 
-    if (!STRIPE_SECRET_KEY || !sessionId) {
+    const RAZORPAY_KEY_ID = Deno.env.get("RAZORPAY_KEY_ID");
+    const RAZORPAY_KEY_SECRET = Deno.env.get("RAZORPAY_KEY_SECRET");
+
+    if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET || !razorpayPaymentId || !userId) {
       return new Response(
-        JSON.stringify({ error: "Missing configuration or session ID" }),
+        JSON.stringify({ error: "Missing configuration or payment data" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const sessionRes = await fetch(`https://api.stripe.com/v1/checkout/sessions/${sessionId}`, {
-      headers: { "Authorization": `Bearer ${STRIPE_SECRET_KEY}` },
+    const auth = btoa(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`);
+
+    const paymentRes = await fetch(`https://api.razorpay.com/v1/payments/${razorpayPaymentId}`, {
+      headers: { "Authorization": `Basic ${auth}` },
     });
 
-    const session = await sessionRes.json();
+    const payment = await paymentRes.json();
 
-    if (session.payment_status === "paid" && session.metadata) {
+    if (payment.status === "captured" && payment.order_id === razorpayOrderId) {
       const supabaseUrl = Deno.env.get("SUPABASE_URL");
       const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-      const userId = session.metadata.user_id;
-      const plan = session.metadata.plan;
-      const billing = session.metadata.billing;
 
       const expiresAt = billing === "yearly"
         ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
@@ -62,8 +63,8 @@ Deno.serve(async (req: Request) => {
           user_id: userId,
           plan_type: plan,
           status: "active",
-          payment_provider: "stripe",
-          payment_id: session.id,
+          payment_provider: "razorpay",
+          payment_id: razorpayPaymentId,
           started_at: new Date().toISOString(),
           expires_at: expiresAt,
         }),
@@ -76,7 +77,7 @@ Deno.serve(async (req: Request) => {
     }
 
     return new Response(
-      JSON.stringify({ status: session.payment_status || "unknown" }),
+      JSON.stringify({ status: payment.status || "unknown" }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
