@@ -1,189 +1,8 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabase';
-import { Check, Star, Crown, Zap, Shield, Loader2 } from 'lucide-react';
+import { Crown, Zap, Shield } from 'lucide-react';
 import { useInView } from '../hooks/useAnimations';
 
-declare global {
-  interface Window {
-    Razorpay: new (options: RazorpayOptions) => RazorpayInstance;
-  }
-}
-
-interface RazorpayOptions {
-  key: string;
-  amount: number;
-  currency: string;
-  name: string;
-  description: string;
-  order_id: string;
-  prefill: { name: string; email: string; contact: string };
-  theme: { color: string };
-  handler: (response: RazorpayResponse) => void;
-  modal?: { ondismiss?: () => void };
-}
-
-interface RazorpayInstance {
-  open: () => void;
-}
-
-interface RazorpayResponse {
-  razorpay_payment_id: string;
-  razorpay_order_id: string;
-  razorpay_signature: string;
-}
-
-const plans = [
-  {
-    name: 'Free',
-    monthlyPrice: 0,
-    yearlyPrice: 0,
-    save: '',
-    features: ['Basic calorie tracking', '3 AI generations/day', 'Basic home workouts', 'Community access'],
-    popular: false,
-    elite: false,
-  },
-  {
-    name: 'Student',
-    monthlyPrice: 99,
-    yearlyPrice: 1029,
-    save: '159',
-    features: ['Full student mode', 'Hostel meal plans', 'Budget AI diets', 'Protein tracking', 'Home workouts', 'Daily AI suggestions', 'Basic analytics'],
-    popular: true,
-    elite: false,
-  },
-  {
-    name: 'Pro',
-    monthlyPrice: 159,
-    yearlyPrice: 1599,
-    save: '309',
-    features: ['Everything in Student', 'Advanced AI meal generation', 'Personalized transformations', 'Smart progress analytics', 'Advanced workout plans', 'AI body insights', 'Premium dashboards'],
-    popular: false,
-    elite: false,
-  },
-  {
-    name: 'Elite',
-    monthlyPrice: 199,
-    yearlyPrice: 1899,
-    save: '489',
-    features: ['Everything in Pro', 'Elite AI coaching', 'Full premium transformation', 'Unlimited AI requests', 'Advanced body analytics', 'Priority AI support', 'Exclusive premium plans', 'Future premium features'],
-    popular: false,
-    elite: true,
-  },
-];
-
 export default function PricingPage() {
-  const { user } = useAuth();
   const { ref, isInView } = useInView(0.1);
-  const [billing, setBilling] = useState<'monthly' | 'yearly'>('monthly');
-  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
-  const navigate = useNavigate();
-
-  const loadRazorpayScript = (): Promise<boolean> => {
-    return new Promise((resolve) => {
-      if (window.Razorpay) {
-        resolve(true);
-        return;
-      }
-      const script = document.createElement('script');
-      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-      script.onload = () => resolve(true);
-      script.onerror = () => resolve(false);
-      document.body.appendChild(script);
-    });
-  };
-
-  const handleSubscribe = async (planName: string) => {
-    if (planName === 'Free') return;
-    if (!user) {
-      navigate('/signup');
-      return;
-    }
-
-    setLoadingPlan(planName);
-
-    try {
-      const scriptLoaded = await loadRazorpayScript();
-      if (!scriptLoaded) {
-        setLoadingPlan(null);
-        return;
-      }
-
-      const { data: { session } } = await supabase.auth.getSession();
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token}`,
-        },
-        body: JSON.stringify({
-          plan: planName.toLowerCase(),
-          billing,
-          userId: user.id,
-          email: user.email,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.error) {
-        setLoadingPlan(null);
-        return;
-      }
-
-      const options: RazorpayOptions = {
-        key: data.key,
-        amount: data.amount,
-        currency: data.currency,
-        name: 'Caesar AI',
-        description: `${planName} Plan - ${billing === 'yearly' ? 'Yearly' : 'Monthly'}`,
-        order_id: data.orderId,
-        prefill: {
-          name: '',
-          email: data.prefill?.email || user.email || '',
-          contact: data.prefill?.contact || '',
-        },
-        theme: { color: '#dc2626' },
-        handler: async (response: RazorpayResponse) => {
-          try {
-            const verifyRes = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/check-subscription`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${session?.access_token}`,
-              },
-              body: JSON.stringify({
-                razorpayPaymentId: response.razorpay_payment_id,
-                razorpayOrderId: response.razorpay_order_id,
-                razorpaySignature: response.razorpay_signature,
-                userId: user.id,
-                plan: planName.toLowerCase(),
-                billing,
-              }),
-            });
-
-            const verifyData = await verifyRes.json();
-            if (verifyData.status === 'active') {
-              navigate('/payment-success?plan=' + planName.toLowerCase());
-            }
-          } catch {
-            navigate('/payment-success?plan=' + planName.toLowerCase());
-          }
-        },
-        modal: {
-          ondismiss: () => {
-            setLoadingPlan(null);
-          },
-        },
-      };
-
-      const rzp = new window.Razorpay(options);
-      rzp.open();
-    } catch {
-      setLoadingPlan(null);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-caesar-black pt-24 pb-16 px-4">
@@ -195,104 +14,61 @@ export default function PricingPage() {
         <div ref={ref} className={`text-center mb-12 transition-all duration-700 ${isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
           <div className="inline-flex items-center gap-2 glass-gold rounded-full px-4 py-2 mb-6">
             <Crown className="w-4 h-4 text-caesar-gold" />
-            <span className="text-xs font-medium text-caesar-gold uppercase tracking-wider">Premium Plans</span>
+            <span className="text-xs font-medium text-caesar-gold uppercase tracking-wider">Free Access</span>
           </div>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black mb-4">
-            <span className="text-caesar-white">Invest in Your</span>
+            <span className="text-caesar-white">Caesar AI is</span>
             <br />
-            <span className="text-gradient-red">Transformation</span>
+            <span className="text-gradient-red">100% Free</span>
           </h2>
           <p className="text-caesar-muted max-w-2xl mx-auto mb-6">
-            Less than a cup of coffee per day. Your body deserves the best AI coaching.
+            All features are currently free during our beta period. Enjoy unlimited AI meal generation, workouts, and progress tracking at no cost.
           </p>
-
-          <div className="inline-flex items-center glass rounded-xl p-1">
-            <button onClick={() => setBilling('monthly')}
-              className={`px-4 py-2 rounded-lg text-xs font-medium transition-all ${billing === 'monthly' ? 'bg-caesar-red text-white' : 'text-caesar-muted hover:text-caesar-white'}`}>
-              Monthly
-            </button>
-            <button onClick={() => setBilling('yearly')}
-              className={`px-4 py-2 rounded-lg text-xs font-medium transition-all ${billing === 'yearly' ? 'bg-caesar-gold text-caesar-black' : 'text-caesar-muted hover:text-caesar-white'}`}>
-              Yearly <span className="text-[10px] ml-1 opacity-70">Save more</span>
-            </button>
-          </div>
         </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 items-start">
-          {plans.map((plan) => {
-            const price = billing === 'monthly' ? plan.monthlyPrice : plan.yearlyPrice;
-            const isLoading = loadingPlan === plan.name.toLowerCase();
+        <div className="max-w-md mx-auto">
+          <div className="glass-strong rounded-2xl p-8 text-center glow-gold">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-caesar-gold to-caesar-gold-light flex items-center justify-center mx-auto mb-6">
+              <Zap className="w-8 h-8 text-caesar-black" />
+            </div>
+            <h3 className="text-2xl font-bold text-caesar-white mb-2">Full Access</h3>
+            <p className="text-4xl font-black text-caesar-gold mb-4">Free</p>
+            <p className="text-sm text-caesar-muted mb-6">No payment required. No credit card needed.</p>
 
-            return (
-              <div key={plan.name}
-                className={`relative glass-strong rounded-2xl p-6 lg:p-8 card-3d transition-all ${
-                  plan.popular ? 'glow-red scale-[1.02] lg:scale-105 border-caesar-red/30' : ''
-                } ${plan.elite ? 'glow-gold border-caesar-gold/30' : ''}`}>
-                {plan.popular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-caesar-red to-caesar-red-glow text-[10px] font-bold text-white uppercase tracking-wider animate-glow-pulse">
-                    Most Popular
+            <div className="space-y-3 text-left mb-6">
+              {[
+                'Unlimited AI meal generation',
+                'Unlimited AI workout plans',
+                'Full progress tracking',
+                'Protein & calorie tracking',
+                'Dashboard analytics',
+                'Hostel student mode',
+                'Indian foods database',
+                'Global localization',
+              ].map((feature, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <div className="w-5 h-5 rounded-full bg-caesar-gold/20 flex items-center justify-center shrink-0">
+                    <Zap className="w-3 h-3 text-caesar-gold" />
                   </div>
-                )}
-                {plan.elite && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-caesar-gold to-caesar-gold-light text-[10px] font-bold text-caesar-black uppercase tracking-wider">
-                    Elite
-                  </div>
-                )}
-
-                <div className="mb-6">
-                  <div className="flex items-center gap-2 mb-2">
-                    {plan.elite ? <Crown className="w-5 h-5 text-caesar-gold" /> : plan.popular ? <Star className="w-5 h-5 text-caesar-red" /> : <Zap className="w-5 h-5 text-caesar-muted" />}
-                    <h3 className="text-lg font-bold text-caesar-white">{plan.name}</h3>
-                  </div>
-                  <div className="flex items-baseline gap-1 mb-1">
-                    <span className="text-3xl lg:text-4xl font-black text-gradient-premium">
-                      {price === 0 ? 'Free' : `Rs.${price}`}
-                    </span>
-                    {price > 0 && <span className="text-sm text-caesar-muted">/{billing === 'monthly' ? 'mo' : 'yr'}</span>}
-                  </div>
-                  {plan.save && billing === 'yearly' && (
-                    <p className="text-[10px] font-medium text-caesar-gold">Save Rs.{plan.save}/year</p>
-                  )}
+                  <span className="text-sm text-caesar-muted">{feature}</span>
                 </div>
+              ))}
+            </div>
 
-                <div className="space-y-3 mb-8">
-                  {plan.features.map((feature, i) => (
-                    <div key={i} className="flex items-start gap-3">
-                      <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${plan.popular ? 'bg-caesar-red/20' : plan.elite ? 'bg-caesar-gold/20' : 'bg-caesar-border'}`}>
-                        <Check className={`w-3 h-3 ${plan.popular ? 'text-caesar-red' : plan.elite ? 'text-caesar-gold' : 'text-caesar-muted'}`} />
-                      </div>
-                      <span className="text-sm text-caesar-muted">{feature}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <button
-                  onClick={() => handleSubscribe(plan.name)}
-                  disabled={isLoading}
-                  className={`w-full py-3.5 rounded-xl font-semibold text-sm transition-all duration-300 disabled:opacity-50 ${
-                    plan.popular ? 'btn-primary' : plan.elite ? 'btn-gold' : 'glass hover:bg-white/10 text-caesar-white'
-                  }`}>
-                  {isLoading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : plan.monthlyPrice === 0 ? 'Get Started' : plan.popular ? 'Start Free Trial' : plan.elite ? 'Go Elite' : 'Subscribe'}
-                </button>
-
-                {plan.popular && (
-                  <div className="mt-4 flex items-center justify-center gap-1 text-[10px] text-caesar-muted">
-                    <Shield className="w-3 h-3" /> 7-day free trial. Cancel anytime.
-                  </div>
-                )}
-              </div>
-            );
-          })}
+            <p className="text-xs text-caesar-muted">
+              Subscription plans coming soon. Enjoy all features free during beta.
+            </p>
+          </div>
         </div>
 
         <div className="mt-12 text-center">
           <div className="glass rounded-2xl p-6 max-w-2xl mx-auto">
             <div className="flex items-center justify-center gap-2 mb-3">
               <Shield className="w-5 h-5 text-caesar-gold" />
-              <span className="text-sm font-bold text-caesar-white">30-Day Transformation Guarantee</span>
+              <span className="text-sm font-bold text-caesar-white">Beta Period</span>
             </div>
             <p className="text-xs text-caesar-muted">
-              If you don't see measurable progress within 30 days, we'll refund your subscription in full. No questions asked.
+              Caesar AI is currently in public beta. All features are free for early users. Subscription options will be introduced later for premium features and priority support.
             </p>
           </div>
         </div>

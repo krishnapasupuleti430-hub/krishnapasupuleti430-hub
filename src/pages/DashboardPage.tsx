@@ -6,7 +6,7 @@ import { supabase } from '../lib/supabase';
 import {
   Flame, Droplets, Dumbbell, Apple, Brain, Target, Zap,
   TrendingUp, Award, Utensils, Plus, Minus, Save, LogOut, Settings,
-  Crown, BarChart3, Star, ChevronRight
+  BarChart3, Star, ChevronRight
 } from 'lucide-react';
 
 interface DailyTracking {
@@ -66,7 +66,7 @@ function Ring({ progress, color, size = 80, strokeWidth = 6, label, value }: {
 
 export default function DashboardPage() {
   const { user, profile, signOut, updateProfile } = useAuth();
-  const { plan, isFree, isStudent, isPro, isElite, aiGenerationsLeft } = useSubscription();
+  const { aiGenerationsLeft } = useSubscription();
   const [tracking, setTracking] = useState<DailyTracking | null>(null);
   const [savedMeals, setSavedMeals] = useState<SavedMeal[]>([]);
   const [savedWorkouts, setSavedWorkouts] = useState<SavedWorkout[]>([]);
@@ -188,15 +188,6 @@ export default function DashboardPage() {
   const proPct = tracking ? Math.min((tracking.protein_consumed / proteinGoal) * 100, 100) : 0;
   const waterPct = tracking ? Math.min((tracking.water_glasses / waterGoal) * 100, 100) : 0;
 
-  const planBadge = () => {
-    if (isElite) return { label: 'Elite', color: 'text-caesar-gold', bg: 'bg-caesar-gold/20' };
-    if (isPro) return { label: 'Pro', color: 'text-caesar-red', bg: 'bg-caesar-red/20' };
-    if (isStudent) return { label: 'Student', color: 'text-blue-400', bg: 'bg-blue-500/20' };
-    return { label: 'Free', color: 'text-caesar-muted', bg: 'bg-caesar-border' };
-  };
-
-  const badge = planBadge();
-
   const tabs = [
     { id: 'overview', label: 'Overview', icon: BarChart3 },
     { id: 'meals', label: 'Meals', icon: Utensils },
@@ -216,10 +207,7 @@ export default function DashboardPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
           <div>
-            <div className="flex items-center gap-3 mb-1">
-              <h1 className="text-2xl font-black text-caesar-white">Dashboard</h1>
-              <span className={`text-[10px] px-2 py-0.5 rounded-full ${badge.bg} ${badge.color} font-medium`}>{badge.label}</span>
-            </div>
+            <h1 className="text-2xl font-black text-caesar-white mb-1">Dashboard</h1>
             <p className="text-sm text-caesar-muted">Welcome back, {profile?.full_name || user?.email}</p>
           </div>
           <div className="flex items-center gap-3">
@@ -253,9 +241,9 @@ export default function DashboardPage() {
             <p className="text-[10px] text-caesar-muted">Current kg</p>
           </div>
           <div className="glass-strong rounded-xl p-4 text-center">
-            <Crown className="w-5 h-5 text-caesar-gold mx-auto mb-1" />
-            <p className="text-lg font-black text-gradient-gold capitalize">{plan}</p>
-            <p className="text-[10px] text-caesar-muted">Plan</p>
+            <Target className="w-5 h-5 text-green-400 mx-auto mb-1" />
+            <p className="text-lg font-black text-caesar-white">{profile?.target_weight_kg || '--'}</p>
+            <p className="text-[10px] text-caesar-muted">Target kg</p>
           </div>
         </div>
 
@@ -510,7 +498,7 @@ export default function DashboardPage() {
                   { icon: Award, label: '30-Day Champ', unlocked: streakCount >= 30 },
                   { icon: Star, label: '100 Meals', unlocked: savedMeals.length >= 100 },
                   { icon: Flame, label: '100 Streak', unlocked: streakCount >= 100 },
-                  { icon: Crown, label: 'Elite Body', unlocked: false },
+                  { icon: Zap, label: 'Elite Body', unlocked: false },
                 ].map((badge, i) => (
                   <div key={i} className={`flex flex-col items-center gap-2 p-3 rounded-xl transition-all ${badge.unlocked ? 'glass-gold glow-gold' : 'glass opacity-40'}`}>
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center ${badge.unlocked ? 'bg-caesar-gold/20' : 'bg-caesar-border'}`}>
@@ -521,17 +509,6 @@ export default function DashboardPage() {
                 ))}
               </div>
             </div>
-
-            {isFree && (
-              <div className="glass-strong rounded-2xl p-6 text-center glow-red">
-                <Crown className="w-8 h-8 text-caesar-gold mx-auto mb-3" />
-                <h3 className="text-base font-bold text-caesar-white mb-2">Unlock Advanced Analytics</h3>
-                <p className="text-xs text-caesar-muted mb-4">Upgrade to Pro or Elite for weekly reports, transformation tracking, and advanced body analytics.</p>
-                <Link to="/pricing" className="btn-gold inline-flex items-center gap-2 px-6 py-3 text-sm">
-                  <Crown className="w-4 h-4" /> Upgrade Plan
-                </Link>
-              </div>
-            )}
           </div>
         )}
 
@@ -567,21 +544,6 @@ export default function DashboardPage() {
                     <span className="text-xs text-caesar-muted">Hostel Mode</span>
                   </label>
                 </div>
-              </div>
-            </div>
-
-            <div className="glass-strong rounded-2xl p-6">
-              <h3 className="text-sm font-bold text-caesar-white mb-4 flex items-center gap-2"><Crown className="w-4 h-4 text-caesar-gold" /> Subscription</h3>
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <p className="text-sm font-medium text-caesar-white capitalize">{plan} Plan</p>
-                  <p className="text-[10px] text-caesar-muted">AI generations left today: {aiGenerationsLeft === Infinity ? 'Unlimited' : aiGenerationsLeft}</p>
-                </div>
-                {isFree && (
-                  <Link to="/pricing" className="btn-gold flex items-center gap-2 px-4 py-2 text-xs">
-                    <Crown className="w-3.5 h-3.5" /> Upgrade
-                  </Link>
-                )}
               </div>
             </div>
 

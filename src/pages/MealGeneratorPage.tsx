@@ -21,7 +21,7 @@ const indianFoods = ['Rice', 'Dal', 'Roti', 'Paneer', 'Eggs', 'Chicken', 'Curd',
 
 export default function MealGeneratorPage() {
   const { user, profile } = useAuth();
-  const { canUseFeature, consumeAIGeneration, aiGenerationsLeft, isFree } = useSubscription();
+  const {} = useSubscription();
   const [ingredients, setIngredients] = useState('');
   const [goal, setGoal] = useState(profile?.fitness_goal || 'muscle_gain');
   const [budget, setBudget] = useState(profile?.budget_level || '200');
@@ -40,15 +40,6 @@ export default function MealGeneratorPage() {
   ];
 
   const generateMeals = async () => {
-    if (!canUseFeature('limited_ai') && !canUseFeature('budget_diets')) {
-      setError('Upgrade your plan to use AI meal generation');
-      return;
-    }
-    if (!consumeAIGeneration()) {
-      setError(`Daily AI limit reached. ${isFree ? 'Upgrade for more generations.' : 'Try again tomorrow.'}`);
-      return;
-    }
-
     setLoading(true);
     setError('');
     setMeals([]);
@@ -124,9 +115,7 @@ export default function MealGeneratorPage() {
           </div>
           <h1 className="text-3xl sm:text-4xl font-black text-caesar-white mb-2">Generate Your AI Diet Plan</h1>
           <p className="text-sm text-caesar-muted">Tell Caesar what you have. AI creates the perfect meal plan.</p>
-          {isFree && (
-            <p className="text-xs text-caesar-gold mt-2">{aiGenerationsLeft} free generations left today</p>
-          )}
+          <p className="text-xs text-caesar-gold mt-2">Unlimited AI generations during beta</p>
         </div>
 
         <div className="grid lg:grid-cols-5 gap-6">

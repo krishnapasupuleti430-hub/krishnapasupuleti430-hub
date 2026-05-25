@@ -25,7 +25,7 @@ interface Workout {
 
 export default function WorkoutGeneratorPage() {
   const { user, profile } = useAuth();
-  const { consumeAIGeneration, aiGenerationsLeft, isFree } = useSubscription();
+  const {} = useSubscription();
   const [goal, setGoal] = useState(profile?.fitness_goal || 'muscle_gain');
   const [level, setLevel] = useState('beginner');
   const [equipment, setEquipment] = useState('none');
@@ -52,11 +52,6 @@ export default function WorkoutGeneratorPage() {
   const muscles = ['full_body', 'chest', 'back', 'shoulders', 'arms', 'legs', 'core'];
 
   const generateWorkout = async () => {
-    if (!consumeAIGeneration()) {
-      setError(`Daily AI limit reached. ${isFree ? 'Upgrade for more generations.' : 'Try again tomorrow.'}`);
-      return;
-    }
-
     setLoading(true);
     setError('');
     setWorkout(null);
@@ -119,7 +114,7 @@ export default function WorkoutGeneratorPage() {
           </div>
           <h1 className="text-3xl sm:text-4xl font-black text-caesar-white mb-2">Generate Your AI Workout</h1>
           <p className="text-sm text-caesar-muted">AI creates personalized workouts based on your goals and equipment.</p>
-          {isFree && <p className="text-xs text-caesar-gold mt-2">{aiGenerationsLeft} free generations left today</p>}
+          <p className="text-xs text-caesar-gold mt-2">Unlimited AI generations during beta</p>
         </div>
 
         <div className="grid lg:grid-cols-5 gap-6">

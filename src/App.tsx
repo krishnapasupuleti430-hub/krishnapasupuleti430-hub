@@ -12,7 +12,6 @@ import DashboardPage from './pages/DashboardPage';
 import MealGeneratorPage from './pages/MealGeneratorPage';
 import WorkoutGeneratorPage from './pages/WorkoutGeneratorPage';
 import PricingPage from './pages/PricingPage';
-import PaymentSuccessPage from './pages/PaymentSuccessPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 
 function App() {
@@ -29,7 +28,6 @@ function App() {
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/pricing" element={<PricingPage />} />
-            <Route path="/payment-success" element={<PaymentSuccessPage />} />
             <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
             <Route path="/meal-generator" element={<ProtectedRoute><MealGeneratorPage /></ProtectedRoute>} />
             <Route path="/workout-generator" element={<ProtectedRoute><WorkoutGeneratorPage /></ProtectedRoute>} />
