@@ -1,187 +1,155 @@
-import { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { supabase } from '../lib/supabase';
-import type { User, Session } from '@supabase/supabase-js';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 interface Profile {
-  id: string;
-  user_id: string;
-  full_name: string;
-  country: string;
-  fitness_goal: string;
-  budget_level: string;
-  weight_kg: number;
-  target_weight_kg: number;
-  daily_protein_goal: number;
+  full_name: string | null;
+  weight_kg: number | null;
+  target_weight_kg: number | null;
+  height_cm: number | null;
+  age: number | null;
+  gender: string | null;
+  fitness_goal: string | null;
   daily_calorie_goal: number;
+  daily_protein_goal: number;
   daily_water_goal: number;
   is_hostel_mode: boolean;
-  streak_days: number;
-  subscription_plan: string;
+  country: string;
+}
+
+interface User {
+  id: string;
+  email: string;
+  created_at: string;
 }
 
 interface AuthContextType {
   user: User | null;
-  session: Session | null;
-  profile: Profile | null;
+  profile: Profile;
   loading: boolean;
-  signUp: (email: string, password: string, metadata: Record<string, string>) => Promise<{ error: string | null }>;
+  signUp: (email: string, password: string, metadata?: { full_name?: string }) => Promise<{ error: string | null }>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
-  signInWithGoogle: () => Promise<void>;
-  signOut: () => Promise<void>;
+  signOut: () => void;
   resetPassword: (email: string) => Promise<{ error: string | null }>;
   updatePassword: (password: string) => Promise<{ error: string | null }>;
   updateProfile: (updates: Partial<Profile>) => Promise<{ error: string | null }>;
   refreshProfile: () => Promise<void>;
 }
 
+const defaultProfile: Profile = {
+  full_name: null,
+  weight_kg: null,
+  target_weight_kg: null,
+  height_cm: null,
+  age: null,
+  gender: null,
+  fitness_goal: 'muscle_gain',
+  daily_calorie_goal: 2200,
+  daily_protein_goal: 150,
+  daily_water_goal: 8,
+  is_hostel_mode: false,
+  country: 'India',
+};
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const STORAGE_KEY = 'caesar_ai_demo_user';
+const PROFILE_KEY = 'caesar_ai_demo_profile';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profile, setProfile] = useState<Profile>(defaultProfile);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = useCallback(async (userId: string) => {
-    try {
-      const { data } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', userId)
-        .maybeSingle();
-
-      if (data) {
-        let planType = 'free';
-        try {
-          const { data: subData } = await supabase
-            .from('subscriptions')
-            .select('plan_type')
-            .eq('user_id', userId)
-            .eq('status', 'active')
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-          if (subData?.plan_type) planType = subData.plan_type;
-        } catch { /* subscription lookup failed, use free */ }
-
-        setProfile({ ...data, subscription_plan: planType });
+  useEffect(() => {
+    const storedUser = localStorage.getItem(STORAGE_KEY);
+    const storedProfile = localStorage.getItem(PROFILE_KEY);
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+      if (storedProfile) {
+        setProfile({ ...defaultProfile, ...JSON.parse(storedProfile) });
       }
-    } catch { /* profile fetch failed */ }
+    }
+    setLoading(false);
   }, []);
 
-  useEffect(() => {
-    let mounted = true;
-
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
-      if (!mounted) return;
-      setSession(s);
-      setUser(s?.user ?? null);
-      if (s?.user) fetchProfile(s.user.id);
-      setLoading(false);
-    }).catch(() => {
-      if (mounted) setLoading(false);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
-      if (!mounted) return;
-      setSession(s);
-      setUser(s?.user ?? null);
-      if (s?.user) {
-        (async () => { await fetchProfile(s.user.id); })();
-      } else {
-        setProfile(null);
-      }
-    });
-
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
+  const signUp = useCallback(async (email: string, _password: string, metadata?: { full_name?: string }) => {
+    const newUser: User = {
+      id: `demo-${Date.now()}`,
+      email,
+      created_at: new Date().toISOString(),
     };
-  }, [fetchProfile]);
-
-  const signUp = async (email: string, password: string, metadata: Record<string, string>) => {
-    try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { data: metadata },
-      });
-      if (error) return { error: error.message };
-      return { error: null };
-    } catch (err) {
-      return { error: err instanceof Error ? err.message : 'Signup failed' };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(newUser));
+    if (metadata?.full_name) {
+      const newProfile = { ...defaultProfile, full_name: metadata.full_name };
+      localStorage.setItem(PROFILE_KEY, JSON.stringify(newProfile));
+      setProfile(newProfile);
     }
-  };
+    setUser(newUser);
+    return { error: null };
+  }, []);
 
-  const signIn = async (email: string, password: string) => {
-    try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) return { error: error.message };
-      return { error: null };
-    } catch (err) {
-      return { error: err instanceof Error ? err.message : 'Login failed' };
+  const signIn = useCallback(async (email: string, _password: string) => {
+    const storedUser = localStorage.getItem(STORAGE_KEY);
+    if (storedUser) {
+      const existing = JSON.parse(storedUser);
+      if (existing.email === email) {
+        setUser(existing);
+        const storedProfile = localStorage.getItem(PROFILE_KEY);
+        if (storedProfile) {
+          setProfile({ ...defaultProfile, ...JSON.parse(storedProfile) });
+        }
+        return { error: null };
+      }
     }
-  };
+    const newUser: User = {
+      id: `demo-${Date.now()}`,
+      email,
+      created_at: new Date().toISOString(),
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(newUser));
+    setUser(newUser);
+    return { error: null };
+  }, []);
 
-  const signInWithGoogle = async () => {
-    try {
-      await supabase.auth.signInWithOAuth({ provider: 'google' });
-    } catch { /* google sign in failed */ }
-  };
+  const signOut = useCallback(() => {
+    localStorage.removeItem(STORAGE_KEY);
+    setUser(null);
+    setProfile(defaultProfile);
+  }, []);
 
-  const signOut = async () => {
-    try {
-      await supabase.auth.signOut();
-    } catch { /* sign out failed */ }
-    setProfile(null);
-  };
+  const resetPassword = useCallback(async (_email: string) => {
+    return { error: null };
+  }, []);
 
-  const resetPassword = async (email: string) => {
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-      if (error) return { error: error.message };
-      return { error: null };
-    } catch (err) {
-      return { error: err instanceof Error ? err.message : 'Reset failed' };
-    }
-  };
+  const updatePassword = useCallback(async (_password: string) => {
+    return { error: null };
+  }, []);
 
-  const updatePassword = async (password: string) => {
-    try {
-      const { error } = await supabase.auth.updateUser({ password });
-      if (error) return { error: error.message };
-      return { error: null };
-    } catch (err) {
-      return { error: err instanceof Error ? err.message : 'Update failed' };
-    }
-  };
-
-  const updateProfile = async (updates: Partial<Profile>) => {
-    if (!user) return { error: 'Not authenticated' };
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update(updates)
-        .eq('user_id', user.id);
-      if (error) return { error: error.message };
-      await fetchProfile(user.id);
-      return { error: null };
-    } catch (err) {
-      return { error: err instanceof Error ? err.message : 'Update failed' };
-    }
-  };
+  const updateProfile = useCallback(async (updates: Partial<Profile>) => {
+    const newProfile = { ...profile, ...updates };
+    localStorage.setItem(PROFILE_KEY, JSON.stringify(newProfile));
+    setProfile(newProfile);
+    return { error: null };
+  }, [profile]);
 
   const refreshProfile = useCallback(async () => {
-    if (user) await fetchProfile(user.id);
-  }, [user, fetchProfile]);
+    const storedProfile = localStorage.getItem(PROFILE_KEY);
+    if (storedProfile) {
+      setProfile({ ...defaultProfile, ...JSON.parse(storedProfile) });
+    }
+  }, []);
 
   return (
     <AuthContext.Provider value={{
-      user, session, profile, loading,
-      signUp, signIn, signInWithGoogle, signOut,
-      resetPassword, updatePassword, updateProfile, refreshProfile,
+      user,
+      profile,
+      loading,
+      signUp,
+      signIn,
+      signOut,
+      resetPassword,
+      updatePassword,
+      updateProfile,
+      refreshProfile,
     }}>
       {children}
     </AuthContext.Provider>

@@ -89,6 +89,10 @@ export default function ResetPasswordPage() {
                   {loading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : 'Update Password'}
                 </button>
               </form>
+
+              <div className="mt-4 p-3 rounded-xl bg-caesar-gold/10 border border-caesar-gold/20">
+                <p className="text-xs text-caesar-gold text-center">Demo Mode: Simulated password update</p>
+              </div>
             </>
           )}
         </div>

@@ -78,6 +78,10 @@ export default function ForgotPasswordPage() {
               <Link to="/login" className="flex items-center justify-center gap-1 text-xs text-caesar-muted hover:text-caesar-white mt-6 transition-colors">
                 <ArrowLeft className="w-3 h-3" /> Back to Login
               </Link>
+
+              <div className="mt-4 p-3 rounded-xl bg-caesar-gold/10 border border-caesar-gold/20">
+                <p className="text-xs text-caesar-gold text-center">Demo Mode: Simulated password reset</p>
+              </div>
             </>
           )}
         </div>
