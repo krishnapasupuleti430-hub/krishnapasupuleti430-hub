@@ -59,7 +59,13 @@ export default function WorkoutGeneratorPage() {
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-workouts`, {
+      const apiUrl = import.meta.env.VITE_SUPABASE_URL;
+      if (!apiUrl) {
+        setError('API not configured. Please set VITE_SUPABASE_URL.');
+        setLoading(false);
+        return;
+      }
+      const response = await fetch(`${apiUrl}/functions/v1/generate-workouts`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

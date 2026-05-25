@@ -47,7 +47,13 @@ export default function MealGeneratorPage() {
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-meals`, {
+      const apiUrl = import.meta.env.VITE_SUPABASE_URL;
+      if (!apiUrl) {
+        setError('API not configured. Please set VITE_SUPABASE_URL.');
+        setLoading(false);
+        return;
+      }
+      const response = await fetch(`${apiUrl}/functions/v1/generate-meals`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
