@@ -15,18 +15,13 @@ interface SubscriptionContextType {
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined);
 
 export function SubscriptionProvider({ children }: { children: React.ReactNode }) {
-  const canUseFeature = () => true;
-  const consumeAIGeneration = () => true;
-  const aiGenerationsLeft = 999;
-  const aiGenerationsUsed = 0;
-
   return (
     <SubscriptionContext.Provider value={{
       plan: 'free',
-      canUseFeature,
-      aiGenerationsLeft,
-      aiGenerationsUsed,
-      consumeAIGeneration,
+      canUseFeature: () => true,
+      aiGenerationsLeft: 999,
+      aiGenerationsUsed: 0,
+      consumeAIGeneration: () => true,
       isFree: true,
       isStudent: false,
       isPro: false,
