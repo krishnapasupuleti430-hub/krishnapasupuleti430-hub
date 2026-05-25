@@ -21,7 +21,7 @@ export default function ParticleBackground() {
 
     let animationId: number;
     const particles: Particle[] = [];
-    const colors = ['rgba(220,38,38,', 'rgba(212,168,67,', 'rgba(245,245,245,'];
+    const colors = ['rgba(59,130,246,', 'rgba(139,92,246,', 'rgba(6,182,212,'];
 
     const resize = () => {
       canvas.width = window.innerWidth;
@@ -70,7 +70,7 @@ export default function ParticleBackground() {
               ctx.beginPath();
               ctx.moveTo(p.x, p.y);
               ctx.lineTo(particles[j].x, particles[j].y);
-              ctx.strokeStyle = `rgba(220,38,38,${0.05 * (1 - Math.sqrt(dist) / 150)})`;
+              ctx.strokeStyle = `rgba(59,130,246,${0.05 * (1 - Math.sqrt(dist) / 150)})`;
               ctx.lineWidth = 0.5;
               ctx.stroke();
             }
@@ -95,7 +95,7 @@ export default function ParticleBackground() {
     <canvas
       ref={canvasRef}
       className="fixed inset-0 pointer-events-none z-0"
-      style={{ opacity: 0.6 }}
+      style={{ opacity: 0.4 }}
     />
   );
 }

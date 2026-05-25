@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Zap, LogOut, LayoutDashboard } from 'lucide-react';
+import { Menu, X, Zap, LogOut, LayoutDashboard, Sparkles } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function Navbar() {
@@ -39,20 +39,23 @@ export default function Navbar() {
     <nav
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
         scrolled
-          ? 'glass-strong shadow-lg shadow-black/30'
+          ? 'glass-strong shadow-lg shadow-blue-500/5'
           : 'bg-transparent'
       }`}
     >
-      <div className="container-premium mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="container-premium mx-auto">
         <div className="flex items-center justify-between h-16 lg:h-20">
-          <Link to="/" className="flex items-center gap-2 group">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-caesar-red to-caesar-gold flex items-center justify-center glow-red group-hover:scale-110 transition-transform">
+          <Link to="/" className="flex items-center gap-2.5 group">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-caesar-blue via-caesar-purple to-caesar-cyan flex items-center justify-center glow-mixed group-hover:scale-110 transition-transform duration-300">
               <Zap className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-bold tracking-tight">
-              <span className="text-caesar-white">Caesar</span>
-              <span className="text-gradient-red ml-1">AI</span>
-            </span>
+            <div className="flex flex-col">
+              <span className="text-xl font-bold tracking-tight leading-none">
+                <span className="text-caesar-white">Caesar</span>
+                <span className="text-gradient-premium ml-1">AI</span>
+              </span>
+              <span className="text-[8px] text-caesar-muted tracking-widest uppercase">AI Fitness Platform</span>
+            </div>
           </Link>
 
           <div className="hidden md:flex items-center gap-8">
@@ -64,7 +67,7 @@ export default function Navbar() {
                     className="text-sm text-caesar-muted hover:text-caesar-white transition-colors duration-300 relative group"
                   >
                     {l.label}
-                    <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-caesar-red group-hover:w-full transition-all duration-300" />
+                    <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-caesar-blue to-caesar-purple group-hover:w-full transition-all duration-300" />
                   </a>
                 ))
               : appLinks.map((l) => (
@@ -72,11 +75,11 @@ export default function Navbar() {
                     key={l.label}
                     to={l.to}
                     className={`text-sm transition-colors duration-300 relative group ${
-                      location.pathname === l.to ? 'text-caesar-red' : 'text-caesar-muted hover:text-caesar-white'
+                      location.pathname === l.to ? 'text-caesar-blue' : 'text-caesar-muted hover:text-caesar-white'
                     }`}
                   >
                     {l.label}
-                    <span className={`absolute -bottom-1 left-0 h-0.5 bg-caesar-red transition-all duration-300 ${
+                    <span className={`absolute -bottom-1 left-0 h-0.5 bg-gradient-to-r from-caesar-blue to-caesar-purple transition-all duration-300 ${
                       location.pathname === l.to ? 'w-full' : 'group-hover:w-full'
                     }`} />
                   </Link>
@@ -84,30 +87,33 @@ export default function Navbar() {
             }
           </div>
 
-          <div className="hidden md:flex items-center gap-4">
+          <div className="hidden md:flex items-center gap-3">
             {user ? (
               <>
-                <Link to="/dashboard" className="flex items-center gap-1.5 text-sm text-caesar-muted hover:text-caesar-white transition-colors">
+                <Link to="/dashboard" className="flex items-center gap-1.5 px-4 py-2 rounded-lg glass text-sm text-caesar-muted hover:text-caesar-white transition-colors">
                   <LayoutDashboard className="w-4 h-4" /> Dashboard
                 </Link>
-                <button onClick={signOut} className="flex items-center gap-1.5 text-sm text-caesar-muted hover:text-caesar-red transition-colors">
+                <button onClick={signOut} className="flex items-center gap-1.5 px-4 py-2 rounded-lg glass-purple text-sm text-caesar-purple hover:bg-caesar-purple/20 transition-colors">
                   <LogOut className="w-4 h-4" /> Logout
                 </button>
               </>
             ) : (
               <>
-                <Link to="/login" className="text-sm text-caesar-muted hover:text-caesar-white transition-colors">
+                <Link to="/login" className="text-sm text-caesar-muted hover:text-caesar-white transition-colors px-4 py-2">
                   Log In
                 </Link>
-                <Link to="/signup" className="btn-primary text-sm px-6 py-2.5">
-                  Start Free
+                <Link to="/signup" className="relative group">
+                  <div className="absolute inset-0 bg-gradient-to-r from-caesar-blue via-caesar-purple to-caesar-cyan rounded-xl blur opacity-50 group-hover:opacity-75 transition-opacity" />
+                  <div className="relative btn-primary text-sm px-6 py-2.5 bg-gradient-to-r from-caesar-blue via-caesar-purple to-caesar-cyan rounded-xl">
+                    <Sparkles className="w-3.5 h-3.5 inline mr-1.5" /> Start Free
+                  </div>
                 </Link>
               </>
             )}
           </div>
 
           <button
-            className="md:hidden text-caesar-muted hover:text-caesar-white"
+            className="md:hidden text-caesar-muted hover:text-caesar-white p-2"
             onClick={() => setMobileOpen(!mobileOpen)}
           >
             {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -130,12 +136,13 @@ export default function Navbar() {
                   </Link>
                 ))
             }
+            <div className="h-px bg-gradient-to-r from-transparent via-caesar-border to-transparent my-4" />
             {user ? (
               <>
                 <Link to="/dashboard" className="block text-caesar-muted hover:text-caesar-white transition-colors py-2">
                   Dashboard
                 </Link>
-                <button onClick={signOut} className="w-full glass-red rounded-xl py-3 text-sm text-caesar-red">
+                <button onClick={signOut} className="w-full glass-purple rounded-xl py-3 text-sm text-caesar-purple hover:bg-caesar-purple/20 transition-colors">
                   Logout
                 </button>
               </>
@@ -144,8 +151,8 @@ export default function Navbar() {
                 <Link to="/login" className="block text-caesar-muted hover:text-caesar-white transition-colors py-2">
                   Log In
                 </Link>
-                <Link to="/signup" className="btn-primary block text-center text-sm py-3 mt-4">
-                  Start Free
+                <Link to="/signup" className="btn-primary block text-center text-sm py-3 mt-4 bg-gradient-to-r from-caesar-blue via-caesar-purple to-caesar-cyan">
+                  <Sparkles className="w-3.5 h-3.5 inline mr-1.5" /> Start Free
                 </Link>
               </>
             )}
