@@ -48,7 +48,7 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16 lg:h-20">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3 group">
-            <CaesarLogo size={44} className="group-hover:scale-105 transition-transform duration-300" />
+            <CaesarLogo size={48} className="group-hover:scale-105 transition-transform duration-300" />
             <div className="flex flex-col">
               <span className="text-xl font-clash font-semibold tracking-tight leading-none text-caesar-white">
                 Caesar<span className="text-gradient-premium">AI</span>
