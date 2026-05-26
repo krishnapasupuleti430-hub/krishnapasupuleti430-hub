@@ -4,7 +4,7 @@ import Dashboard from '../components/Dashboard';
 import SmartSearch from '../components/SmartSearch';
 import AIAssistant from '../components/AIAssistant';
 import CountrySelector from '../components/CountrySelector';
-import Pricing from '../components/Pricing';
+import PricingSection from '../components/PricingSection';
 import Testimonials from '../components/Testimonials';
 import Transformations from '../components/Transformations';
 import CTA from '../components/CTA';
@@ -19,7 +19,7 @@ export default function LandingPage() {
       <SmartSearch />
       <AIAssistant />
       <CountrySelector />
-      <Pricing />
+      <PricingSection />
       <Testimonials />
       <Transformations />
       <CTA />
