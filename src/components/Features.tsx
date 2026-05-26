@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from 'react';
-import { Utensils, Wallet, Leaf, Globe, TrendingUp, Dumbbell, BarChart3, Bed, MessageCircle, Search } from 'lucide-react';
+import { Utensils, Wallet, Leaf, Globe, TrendingUp, Dumbbell, BarChart3, Bed, MessageCircle, Search, ArrowRight } from 'lucide-react';
 import { useInView } from '../hooks/useAnimations';
 
 function FeatureCard({ icon: Icon, title, description, color }: {
@@ -20,7 +20,7 @@ function FeatureCard({ icon: Icon, title, description, color }: {
       const rect = el.getBoundingClientRect();
       const x = (e.clientX - rect.left) / rect.width - 0.5;
       const y = (e.clientY - rect.top) / rect.height - 0.5;
-      setTilt({ x: x * 8, y: -y * 8 });
+      setTilt({ x: x * 6, y: -y * 6 });
     };
 
     const onLeave = () => setTilt({ x: 0, y: 0 });
@@ -49,14 +49,14 @@ function FeatureCard({ icon: Icon, title, description, color }: {
       >
         <Icon className="w-6 h-6" />
       </div>
-      <h3 className="text-lg font-bold text-caesar-white mb-3 group-hover:text-gradient-premium transition-all">
+      <h3 className="text-lg font-clash font-semibold text-caesar-white mb-3 group-hover:text-gradient-premium transition-all">
         {title}
       </h3>
-      <p className="text-sm text-caesar-muted leading-relaxed">
+      <p className="text-sm text-caesar-muted font-space leading-relaxed">
         {description}
       </p>
-      <div className="mt-4 flex items-center gap-1 text-xs font-medium text-caesar-blue opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-        Learn more <span className="ml-1">&rarr;</span>
+      <div className="mt-4 flex items-center gap-1 text-xs font-space font-medium text-caesar-blue opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        Learn more <ArrowRight className="w-3 h-3 ml-1" />
       </div>
     </div>
   );
@@ -131,19 +131,19 @@ export default function Features() {
   return (
     <section id="features" className="relative section-padding overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-b from-caesar-black via-caesar-dark to-caesar-black" />
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-caesar-blue/5 rounded-full blur-3xl" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-caesar-purple/5 rounded-full blur-[120px]" />
 
       <div className="relative z-10 container-premium mx-auto">
         <div ref={ref} className={`text-center mb-16 lg:mb-20 transition-all duration-700 ${isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
           <div className="inline-flex items-center gap-2 glass-blue rounded-full px-4 py-2 mb-6">
-            <span className="text-xs font-medium text-caesar-blue uppercase tracking-wider">Powerful Features</span>
+            <span className="text-xs font-space font-medium text-caesar-blue uppercase tracking-wider">Powerful Features</span>
           </div>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black mb-4">
+          <h2 className="heading-xl mb-5">
             <span className="text-caesar-white">Everything You Need to</span>
             <br />
             <span className="text-gradient-premium">Transform Your Body</span>
           </h2>
-          <p className="text-caesar-muted max-w-2xl mx-auto">
+          <p className="text-body max-w-2xl mx-auto font-space">
             AI-powered tools designed for students, gym beginners, and fitness lovers. From budget meals to elite coaching.
           </p>
         </div>
