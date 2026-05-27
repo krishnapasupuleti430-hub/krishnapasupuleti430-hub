@@ -1,6 +1,7 @@
 import Hero from '../components/Hero';
 import Features from '../components/Features';
 import Dashboard from '../components/Dashboard';
+import WorkoutsSection from '../components/WorkoutsSection';
 import SmartSearch from '../components/SmartSearch';
 import AIAssistant from '../components/AIAssistant';
 import CountrySelector from '../components/CountrySelector';
@@ -16,6 +17,7 @@ export default function LandingPage() {
       <Hero />
       <Features />
       <Dashboard />
+      <WorkoutsSection />
       <SmartSearch />
       <AIAssistant />
       <CountrySelector />

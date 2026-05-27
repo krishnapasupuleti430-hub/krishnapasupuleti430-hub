@@ -13,14 +13,15 @@ import DashboardPage from './pages/DashboardPage';
 import MealGeneratorPage from './pages/MealGeneratorPage';
 import WorkoutGeneratorPage from './pages/WorkoutGeneratorPage';
 import PricingPage from './pages/PricingPage';
+import WorkoutsPage from './pages/WorkoutsPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 
 function LoadingFallback() {
   return (
     <div className="min-h-screen bg-caesar-black flex items-center justify-center">
       <div className="flex flex-col items-center gap-4">
-        <div className="w-12 h-12 rounded-full border-2 border-caesar-red border-t-transparent animate-spin" />
-        <p className="text-sm text-caesar-muted">Loading Caesar AI...</p>
+        <div className="w-12 h-12 rounded-full border-2 border-caesar-blue border-t-transparent animate-spin" />
+        <p className="text-sm text-caesar-muted font-space">Loading Caesar AI...</p>
       </div>
     </div>
   );
@@ -41,6 +42,7 @@ function App() {
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/pricing" element={<PricingPage />} />
+              <Route path="/workouts" element={<WorkoutsPage />} />
               <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
               <Route path="/meal-generator" element={<ProtectedRoute><MealGeneratorPage /></ProtectedRoute>} />
               <Route path="/workout-generator" element={<ProtectedRoute><WorkoutGeneratorPage /></ProtectedRoute>} />
