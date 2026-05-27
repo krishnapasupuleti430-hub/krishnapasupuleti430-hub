@@ -91,6 +91,28 @@
     border: 1px solid rgba(6, 182, 212, 0.15);
   }
 
+  .glass-gold {
+    background: rgba(234, 179, 8, 0.08);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(234, 179, 8, 0.15);
+  }
+
+  .glass-red {
+    background: rgba(239, 68, 68, 0.08);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(239, 68, 68, 0.15);
+  }
+
+  .glow-gold {
+    box-shadow: 0 0 20px rgba(234, 179, 8, 0.2), 0 0 60px rgba(234, 179, 8, 0.1);
+  }
+
+  .glow-red {
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.2), 0 0 60px rgba(239, 68, 68, 0.1);
+  }
+
   .glow-blue {
     box-shadow: 0 0 20px rgba(59, 130, 246, 0.3), 0 0 60px rgba(59, 130, 246, 0.1);
   }
@@ -133,6 +155,24 @@
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+  }
+
+  .text-gradient-gold {
+    background: linear-gradient(135deg, #EAB308, #FACC15);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .text-gradient-red {
+    background: linear-gradient(135deg, #EF4444, #F87171);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .bg-gradient-gold {
+    background: linear-gradient(135deg, #EAB308, #FACC15);
   }
 
   .text-gradient-white {

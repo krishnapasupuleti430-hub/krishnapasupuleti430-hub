@@ -1,62 +1,50 @@
-import { useRef, useEffect, useState } from 'react';
-import { Utensils, Wallet, Leaf, Globe, TrendingUp, Dumbbell, BarChart3, Bed, MessageCircle, Search, ArrowRight } from 'lucide-react';
+import { Utensils, Wallet, Dumbbell, Bed, TrendingUp, ArrowRight } from 'lucide-react';
 import { useInView } from '../hooks/useAnimations';
 
-function FeatureCard({ icon: Icon, title, description, color }: {
+function FeatureCard({ icon: Icon, title, description, stat, statLabel, color }: {
   icon: React.ElementType;
   title: string;
   description: string;
+  stat: string;
+  statLabel: string;
   color: string;
 }) {
   const { ref, isInView } = useInView(0.1);
-  const cardRef = useRef<HTMLDivElement>(null);
-  const [tilt, setTilt] = useState({ x: 0, y: 0 });
 
-  useEffect(() => {
-    const el = cardRef.current;
-    if (!el) return;
+  const colorMap: Record<string, { bg: string; text: string; border: string; glow: string }> = {
+    blue: { bg: 'bg-caesar-blue/15', text: 'text-caesar-blue', border: 'border-caesar-blue/20', glow: 'hover:glow-blue' },
+    purple: { bg: 'bg-caesar-purple/15', text: 'text-caesar-purple', border: 'border-caesar-purple/20', glow: 'hover:glow-purple' },
+    cyan: { bg: 'bg-caesar-cyan/15', text: 'text-caesar-cyan', border: 'border-caesar-cyan/20', glow: 'hover:glow-cyan' },
+  };
 
-    const onMove = (e: MouseEvent) => {
-      const rect = el.getBoundingClientRect();
-      const x = (e.clientX - rect.left) / rect.width - 0.5;
-      const y = (e.clientY - rect.top) / rect.height - 0.5;
-      setTilt({ x: x * 6, y: -y * 6 });
-    };
-
-    const onLeave = () => setTilt({ x: 0, y: 0 });
-
-    el.addEventListener('mousemove', onMove);
-    el.addEventListener('mouseleave', onLeave);
-    return () => {
-      el.removeEventListener('mousemove', onMove);
-      el.removeEventListener('mouseleave', onLeave);
-    };
-  }, []);
+  const c = colorMap[color] || colorMap.blue;
 
   return (
     <div
-      ref={(el) => {
-        (ref as React.MutableRefObject<HTMLDivElement | null>).current = el;
-        (cardRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
-      }}
-      style={{ transform: `perspective(1000px) rotateY(${tilt.x}deg) rotateX(${tilt.y}deg)` }}
-      className={`glass rounded-2xl p-6 lg:p-8 group transition-all duration-700 ${
+      ref={ref}
+      className={`glass-strong rounded-2xl p-6 lg:p-7 group transition-all duration-700 hover:scale-[1.02] ${c.glow} ${
         isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
       }`}
     >
-      <div
-        className={`w-12 h-12 rounded-xl flex items-center justify-center mb-5 transition-all duration-300 group-hover:scale-110 ${color}`}
-      >
-        <Icon className="w-6 h-6" />
+      <div className="flex items-start justify-between mb-5">
+        <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${c.bg}`}>
+          <Icon className={`w-5 h-5 ${c.text}`} />
+        </div>
+        <div className={`px-2.5 py-1 rounded-lg ${c.bg} border ${c.border}`}>
+          <span className={`text-[10px] font-space font-semibold ${c.text}`}>{stat}</span>
+        </div>
       </div>
-      <h3 className="text-lg font-clash font-semibold text-caesar-white mb-3 group-hover:text-gradient-premium transition-all">
+      <h3 className="text-lg font-clash font-semibold text-caesar-white mb-2 group-hover:text-gradient-premium transition-all">
         {title}
       </h3>
-      <p className="text-sm text-caesar-muted font-space leading-relaxed">
+      <p className="text-sm text-caesar-muted font-space leading-relaxed mb-4">
         {description}
       </p>
-      <div className="mt-4 flex items-center gap-1 text-xs font-space font-medium text-caesar-blue opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-        Learn more <ArrowRight className="w-3 h-3 ml-1" />
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] text-caesar-muted font-space">{statLabel}</span>
+        <div className="flex items-center gap-1 text-xs font-space font-medium text-caesar-blue opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          Learn more <ArrowRight className="w-3 h-3" />
+        </div>
       </div>
     </div>
   );
@@ -65,63 +53,43 @@ function FeatureCard({ icon: Icon, title, description, color }: {
 const features = [
   {
     icon: Utensils,
-    title: 'AI Meal Generator',
-    description: 'Enter your available foods and watch AI create perfectly balanced meals instantly. Smart nutrition, zero effort.',
-    color: 'bg-caesar-blue/20 text-caesar-blue',
-  },
-  {
-    icon: Wallet,
-    title: 'Budget Diet Plans',
-    description: 'Premium meal plans at Rs.100/day, Rs.200/day, and Rs.300/day. Eat like a king on a student budget.',
-    color: 'bg-caesar-purple/20 text-caesar-purple',
-  },
-  {
-    icon: Leaf,
-    title: 'Indian Foods Database',
-    description: 'Dosa, idli, dal, rice, paneer, roti, curd, chicken curry, poha - all your local affordable meals tracked smartly.',
-    color: 'bg-caesar-cyan/20 text-caesar-cyan',
-  },
-  {
-    icon: Globe,
-    title: 'Global Meal Support',
-    description: 'Select your country during signup. Caesar adapts foods, meals, and budgets to your local cuisine and affordability.',
-    color: 'bg-caesar-blue/20 text-caesar-blue',
-  },
-  {
-    icon: TrendingUp,
-    title: 'Protein Tracker',
-    description: 'Smart AI protein tracking with animated daily progress bars. Get "Protein left today" AI guidance in real-time.',
-    color: 'bg-caesar-purple/20 text-caesar-purple',
-  },
-  {
-    icon: Dumbbell,
-    title: 'Home Workout Generator',
-    description: 'AI-generated home workouts - no equipment needed. Fat loss, muscle gain, and beginner-friendly plans.',
-    color: 'bg-caesar-cyan/20 text-caesar-cyan',
-  },
-  {
-    icon: BarChart3,
-    title: 'Progress Tracking',
-    description: 'Weight tracking, muscle progress, weekly AI reports, AI motivation system, and transformation journey dashboard.',
-    color: 'bg-caesar-blue/20 text-caesar-blue',
+    title: 'Budget Meal Plans',
+    description: 'Eat 100g+ protein daily on Rs.100-150/day. Dal, eggs, paneer, curd, roti - all tracked with calories and macros.',
+    stat: 'Rs.100/day',
+    statLabel: 'Starting budget',
+    color: 'blue',
   },
   {
     icon: Bed,
     title: 'Hostel Student Mode',
-    description: 'Cheap meals, fast meals, no-cook meals, hostel-friendly plans, and budget protein hacks for student life.',
-    color: 'bg-caesar-purple/20 text-caesar-purple',
+    description: 'No-cook meals, hostel mess hacks, budget protein sources, and instant food combos that actually build muscle.',
+    stat: '50+ meals',
+    statLabel: 'No-cook options',
+    color: 'purple',
   },
   {
-    icon: MessageCircle,
-    title: 'AI Fitness Coach',
-    description: 'Chat-style AI assistant that gives recommendations, motivates you, and suggests meals and workouts 24/7.',
-    color: 'bg-caesar-cyan/20 text-caesar-cyan',
+    icon: Dumbbell,
+    title: 'Home Workouts',
+    description: 'Zero equipment bodyweight workouts - push-ups, squats, dips, planks. Structured plans from beginner to advanced.',
+    stat: '0 equipment',
+    statLabel: 'Gym not needed',
+    color: 'cyan',
   },
   {
-    icon: Search,
-    title: 'Smart Search Engine',
-    description: 'Type "I have eggs and oats" - AI generates meals, calories, protein, and meal timing instantly.',
-    color: 'bg-caesar-blue/20 text-caesar-blue',
+    icon: Wallet,
+    title: 'Indian Food Database',
+    description: 'Dosa, idli, poha, upma, biryani, khichdi, paratha - every Indian food with accurate protein and calorie data.',
+    stat: '500+ foods',
+    statLabel: 'Indian foods tracked',
+    color: 'blue',
+  },
+  {
+    icon: TrendingUp,
+    title: 'Progress Tracking',
+    description: 'Weight logs, muscle gain charts, protein streaks, weekly AI reports, and a transformation timeline that keeps you motivated.',
+    stat: '+8kg avg',
+    statLabel: 'Muscle gained by users',
+    color: 'purple',
   },
 ];
 
@@ -131,24 +99,24 @@ export default function Features() {
   return (
     <section id="features" className="relative section-padding overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-b from-caesar-black via-caesar-dark to-caesar-black" />
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-caesar-purple/5 rounded-full blur-[120px]" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-caesar-blue/5 rounded-full blur-[120px]" />
 
       <div className="relative z-10 container-premium mx-auto">
         <div ref={ref} className={`text-center mb-16 lg:mb-20 transition-all duration-700 ${isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-          <div className="inline-flex items-center gap-2 glass-blue rounded-full px-4 py-2 mb-6">
-            <span className="text-xs font-space font-medium text-caesar-blue uppercase tracking-wider">Powerful Features</span>
+          <div className="inline-flex items-center gap-2 glass-cyan rounded-full px-4 py-2 mb-6">
+            <span className="text-xs font-space font-medium text-caesar-cyan uppercase tracking-wider">Built for Real Student Problems</span>
           </div>
           <h2 className="heading-xl mb-5">
-            <span className="text-caesar-white">Everything You Need to</span>
+            <span className="text-caesar-white">Fitness That Fits</span>
             <br />
-            <span className="text-gradient-premium">Transform Your Body</span>
+            <span className="text-gradient-premium">Your Budget & Lifestyle</span>
           </h2>
           <p className="text-body max-w-2xl mx-auto font-space">
-            AI-powered tools designed for students, gym beginners, and fitness lovers. From budget meals to elite coaching.
+            No expensive supplements. No gym membership. No fancy meal prep. Caesar AI works with what you have - hostel food, home workouts, and a student budget.
           </p>
         </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 lg:gap-6">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {features.map((feature) => (
             <FeatureCard key={feature.title} {...feature} />
           ))}

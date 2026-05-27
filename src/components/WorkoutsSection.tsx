@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Flame, Clock, Target, Trophy, Zap, ChevronRight, Check, Play, Dumbbell, TrendingUp, Calendar, Star, X, ArrowRight } from 'lucide-react';
+import { Flame, Clock, Target, Trophy, Zap, ChevronRight, Check, Play, Dumbbell, TrendingUp, Calendar, X, ArrowRight } from 'lucide-react';
 import { useInView } from '../hooks/useAnimations';
 import {
   type WorkoutGoal,
