@@ -1,172 +1,341 @@
-import { useState, useRef } from 'react';
-import { Flame, Clock, Target, Trophy, Zap, ChevronRight, Check, Play, Dumbbell, TrendingUp, Calendar, X, ArrowRight } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Flame, Clock, Check, Play, Dumbbell, TrendingUp, Calendar, ChevronRight, Trophy, Zap, RotateCcw, Star } from 'lucide-react';
 import { useInView } from '../hooks/useAnimations';
-import {
-  type WorkoutGoal,
-  type Exercise,
-  type WorkoutProgram,
-  categoryLabels,
-  getExercisesByGoal,
-  workoutPrograms,
-  getExerciseById,
-} from '../data/workouts';
+import { weekPlan, type Exercise, type WorkoutDay } from '../data/workouts';
 
-// ── Category Tabs ──────────────────────────────────────────────────
+// ── Day Progress State ──────────────────────────────────────────────
 
-const categories: WorkoutGoal[] = [
-  'beginner-transform',
-  'muscle-gain',
-  'fat-loss',
-  'full-body',
-  'abs-core',
-  'chest',
-  'arms',
-  'shoulders',
-  'legs',
-];
+function useDayProgress() {
+  const [completedDays, setCompletedDays] = useState<Set<number>>(new Set());
+  const [completedExercises, setCompletedExercises] = useState<Set<string>>(new Set());
 
-function CategoryNav({ active, onChange }: { active: WorkoutGoal; onChange: (g: WorkoutGoal) => void }) {
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const toggleExercise = (id: string) => {
+    setCompletedExercises((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const completeDay = (day: number) => {
+    setCompletedDays((prev) => {
+      const next = new Set(prev);
+      if (next.has(day)) next.delete(day);
+      else next.add(day);
+      return next;
+    });
+  };
+
+  const resetWeek = () => {
+    setCompletedDays(new Set());
+    setCompletedExercises(new Set());
+  };
+
+  const dayProgress = (day: WorkoutDay) => {
+    const total = day.exercises.length;
+    const done = day.exercises.filter((e) => completedExercises.has(e.id)).length;
+    return total > 0 ? Math.round((done / total) * 100) : 0;
+  };
+
+  const isDayComplete = (day: number) => completedDays.has(day);
+  const streak = completedDays.size;
+  const totalCalories = weekPlan
+    .filter((d) => completedDays.has(d.day))
+    .reduce((sum, d) => sum + d.calories, 0);
+
+  return { completedDays, completedExercises, toggleExercise, completeDay, resetWeek, dayProgress, isDayComplete, streak, totalCalories };
+}
+
+// ── Streak + Progress Header ────────────────────────────────────────
+
+function ProgressHeader({ streak, totalCalories, completedDays, onReset }: {
+  streak: number;
+  totalCalories: number;
+  completedDays: Set<number>;
+  onReset: () => void;
+}) {
+  const weekPct = Math.round((completedDays.size / 7) * 100);
+  const dayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
   return (
-    <div className="relative">
-      <div
-        ref={scrollRef}
-        className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide"
-        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-      >
-        {categories.map((cat) => (
-          <button
-            key={cat}
-            onClick={() => onChange(cat)}
-            className={`relative shrink-0 px-5 py-2.5 rounded-xl text-sm font-space font-medium transition-all duration-300 ${
-              active === cat
-                ? 'bg-gradient-to-r from-caesar-blue/20 via-caesar-purple/20 to-caesar-cyan/20 text-caesar-white border border-caesar-blue/30 shadow-lg shadow-caesar-blue/10'
-                : 'glass text-caesar-muted hover:text-caesar-white hover:border-caesar-border/50'
-            }`}
-          >
-            {active === cat && (
-              <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-caesar-blue/10 via-caesar-purple/10 to-caesar-cyan/10" />
-            )}
-            <span className="relative">{categoryLabels[cat]}</span>
-          </button>
-        ))}
+    <div className="glass-strong rounded-2xl p-6 mb-8">
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center gap-2">
+          <Flame className="w-5 h-5 text-orange-400" />
+          <h3 className="text-sm font-clash font-semibold text-caesar-white">Your Week</h3>
+        </div>
+        <button onClick={onReset} className="flex items-center gap-1.5 text-[10px] font-space text-caesar-muted hover:text-caesar-cyan transition-colors">
+          <RotateCcw className="w-3 h-3" /> Reset
+        </button>
+      </div>
+
+      {/* Day dots */}
+      <div className="flex items-center justify-between mb-6">
+        {weekPlan.map((day, i) => {
+          const done = completedDays.has(day.day);
+          return (
+            <div key={day.day} className="flex flex-col items-center gap-1.5">
+              <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-space font-bold transition-all duration-500 ${
+                done
+                  ? 'bg-gradient-to-br from-caesar-cyan to-caesar-blue text-white shadow-lg shadow-caesar-cyan/20'
+                  : day.isRest
+                  ? 'bg-caesar-darker border border-caesar-border text-caesar-muted'
+                  : 'glass text-caesar-muted'
+              }`}>
+                {done ? <Check className="w-4 h-4" /> : dayLabels[i]}
+              </div>
+              <span className="text-[9px] text-caesar-muted font-space">D{day.day}</span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Week progress bar */}
+      <div className="mb-5">
+        <div className="flex items-center justify-between text-xs font-space mb-2">
+          <span className="text-caesar-muted">Week Progress</span>
+          <span className="text-caesar-cyan font-semibold">{weekPct}%</span>
+        </div>
+        <div className="w-full h-2.5 bg-caesar-darker rounded-full overflow-hidden">
+          <div
+            className="h-full bg-gradient-to-r from-caesar-blue via-caesar-purple to-caesar-cyan rounded-full transition-all duration-1000"
+            style={{ width: `${weekPct}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Stats row */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="glass rounded-xl p-3 text-center">
+          <p className="text-xl font-clash font-bold text-orange-400">{streak}</p>
+          <p className="text-[10px] text-caesar-muted font-space">Day Streak</p>
+        </div>
+        <div className="glass rounded-xl p-3 text-center">
+          <p className="text-xl font-clash font-bold text-caesar-cyan">{totalCalories}</p>
+          <p className="text-[10px] text-caesar-muted font-space">Cal Burned</p>
+        </div>
+        <div className="glass rounded-xl p-3 text-center">
+          <p className="text-xl font-clash font-bold text-gradient-premium">{completedDays.size}/7</p>
+          <p className="text-[10px] text-caesar-muted font-space">Days Done</p>
+        </div>
       </div>
     </div>
   );
 }
 
-// ── Exercise Card ──────────────────────────────────────────────────
+// ── Day Card (overview mode) ────────────────────────────────────────
 
-function ExerciseCard({ exercise, onAction }: { exercise: Exercise; onAction: (e: Exercise) => void }) {
-  const [completed, setCompleted] = useState(false);
+function DayCard({ day, isComplete, progress, onSelect }: {
+  day: WorkoutDay;
+  isComplete: boolean;
+  progress: number;
+  onSelect: (day: WorkoutDay) => void;
+}) {
+  const { ref, isInView } = useInView(0.1);
+  const [justCompleted, setJustCompleted] = useState(false);
 
-  const difficultyColor = {
-    beginner: 'text-caesar-cyan',
-    intermediate: 'text-caesar-purple',
-    advanced: 'text-caesar-blue',
-  };
+  useEffect(() => {
+    if (isComplete && !justCompleted) setJustCompleted(true);
+  }, [isComplete]);
 
-  const difficultyBg = {
-    beginner: 'bg-caesar-cyan/10 border-caesar-cyan/20',
-    intermediate: 'bg-caesar-purple/10 border-caesar-purple/20',
-    advanced: 'bg-caesar-blue/10 border-caesar-blue/20',
-  };
+  const dayColors = [
+    'from-caesar-blue/20 to-caesar-purple/20 border-caesar-blue/30',
+    'from-caesar-purple/20 to-caesar-cyan/20 border-caesar-purple/30',
+    'from-caesar-cyan/20 to-caesar-blue/20 border-caesar-cyan/30',
+    'from-caesar-border/10 to-caesar-border/5 border-caesar-border/20',
+    'from-caesar-blue/20 to-caesar-cyan/20 border-caesar-blue/30',
+    'from-caesar-purple/20 to-caesar-red/20 border-caesar-purple/30',
+    'from-caesar-border/10 to-caesar-border/5 border-caesar-border/20',
+  ];
 
-  const muscleColor: Record<string, string> = {
-    chest: 'text-caesar-blue',
-    arms: 'text-caesar-purple',
-    shoulders: 'text-caesar-cyan',
-    legs: 'text-caesar-blue',
-    abs: 'text-caesar-purple',
-    'full-body': 'text-caesar-cyan',
-    back: 'text-caesar-blue',
-  };
+  const dayGradients = [
+    'from-caesar-blue to-caesar-purple',
+    'from-caesar-purple to-caesar-cyan',
+    'from-caesar-cyan to-caesar-blue',
+    'from-caesar-muted to-caesar-border',
+    'from-caesar-blue to-caesar-cyan',
+    'from-caesar-purple to-caesar-red',
+    'from-caesar-muted to-caesar-border',
+  ];
 
   return (
-    <div className={`group relative glass rounded-2xl overflow-hidden transition-all duration-500 hover:scale-[1.02] ${completed ? 'ring-2 ring-caesar-cyan/50' : ''}`}>
-      {/* Image */}
-      <div className="relative h-44 overflow-hidden">
-        <img
-          src={exercise.image}
-          alt={exercise.name}
-          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-          loading="lazy"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-caesar-dark via-caesar-dark/50 to-transparent" />
+    <div
+      ref={ref}
+      className={`group relative transition-all duration-700 ${isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+    >
+      <button
+        onClick={() => onSelect(day)}
+        className={`w-full text-left glass-strong rounded-2xl overflow-hidden transition-all duration-500 hover:scale-[1.02] ${
+          isComplete ? 'ring-2 ring-caesar-cyan/40' : ''
+        }`}
+      >
+        {/* Image header */}
+        <div className="relative h-32 overflow-hidden">
+          <img
+            src={day.image}
+            alt={day.title}
+            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+            loading="lazy"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-caesar-dark via-caesar-dark/70 to-transparent" />
+          <div className={`absolute inset-0 bg-gradient-to-r ${dayColors[day.day - 1]} opacity-40`} />
 
-        {/* Difficulty badge */}
-        <div className={`absolute top-3 right-3 px-2.5 py-1 rounded-lg text-[10px] font-space font-semibold uppercase border ${difficultyBg[exercise.difficulty]}`}>
-          <span className={difficultyColor[exercise.difficulty]}>{exercise.difficulty}</span>
-        </div>
-
-        {/* Calories overlay */}
-        <div className="absolute bottom-3 left-3 flex items-center gap-1.5 glass rounded-lg px-2.5 py-1.5">
-          <Flame className="w-3.5 h-3.5 text-orange-400" />
-          <span className="text-xs font-space font-medium text-caesar-white">{exercise.caloriesPerSet * exercise.sets} cal</span>
-        </div>
-
-        {/* Duration overlay */}
-        <div className="absolute bottom-3 right-3 flex items-center gap-1.5 glass rounded-lg px-2.5 py-1.5">
-          <Clock className="w-3.5 h-3.5 text-caesar-cyan" />
-          <span className="text-xs font-space font-medium text-caesar-white">{exercise.duration}</span>
-        </div>
-
-        {/* Completed overlay */}
-        {completed && (
-          <div className="absolute inset-0 bg-caesar-cyan/20 flex items-center justify-center">
-            <div className="w-12 h-12 rounded-full bg-caesar-cyan/30 flex items-center justify-center">
-              <Check className="w-6 h-6 text-caesar-cyan" />
+          {/* Day number */}
+          <div className="absolute top-3 left-3">
+            <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${dayGradients[day.day - 1]} flex items-center justify-center shadow-lg`}>
+              <span className="text-sm font-clash font-bold text-white">{day.day}</span>
             </div>
           </div>
-        )}
-      </div>
 
-      {/* Content */}
-      <div className="p-5">
-        <div className="flex items-start justify-between mb-3">
-          <h3 className="text-base font-clash font-semibold text-caesar-white group-hover:text-gradient-premium transition-colors leading-tight">
-            {exercise.name}
+          {/* Completed badge */}
+          {isComplete && (
+            <div className="absolute top-3 right-3 w-8 h-8 rounded-full bg-caesar-cyan/30 border border-caesar-cyan/50 flex items-center justify-center animate-scale-in">
+              <Check className="w-4 h-4 text-caesar-cyan" />
+            </div>
+          )}
+
+          {/* Rest day badge */}
+          {day.isRest && (
+            <div className="absolute top-3 right-3 px-2.5 py-1 rounded-lg glass text-[10px] font-space font-medium text-caesar-muted">
+              Rest Day
+            </div>
+          )}
+
+          {/* Duration + Calories */}
+          <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
+            <div className="flex items-center gap-1.5 glass rounded-lg px-2 py-1">
+              <Clock className="w-3 h-3 text-caesar-cyan" />
+              <span className="text-[10px] font-space font-medium text-caesar-white">{day.duration}</span>
+            </div>
+            <div className="flex items-center gap-1.5 glass rounded-lg px-2 py-1">
+              <Flame className="w-3 h-3 text-orange-400" />
+              <span className="text-[10px] font-space font-medium text-caesar-white">{day.calories} cal</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-5">
+          <h3 className="text-base font-clash font-semibold text-caesar-white mb-1 group-hover:text-gradient-premium transition-all">
+            Day {day.day}: {day.title}
           </h3>
-        </div>
+          <p className="text-xs text-caesar-muted font-space mb-3">{day.subtitle}</p>
 
-        <div className="flex items-center gap-2 mb-3">
-          <Target className={`w-3.5 h-3.5 ${muscleColor[exercise.targetMuscle] || 'text-caesar-blue'}`} />
-          <span className="text-xs font-space text-caesar-muted capitalize">{exercise.targetMuscle.replace('-', ' ')}</span>
-        </div>
-
-        <p className="text-xs text-caesar-muted font-space leading-relaxed mb-4 line-clamp-2">
-          {exercise.description}
-        </p>
-
-        {/* Sets & Reps */}
-        <div className="flex items-center gap-3 mb-4">
-          <div className="flex items-center gap-1.5 glass rounded-lg px-2.5 py-1.5">
-            <Dumbbell className="w-3 h-3 text-caesar-purple" />
-            <span className="text-[11px] font-space font-medium text-caesar-muted">{exercise.sets} sets</span>
+          {/* Target muscles */}
+          <div className="flex items-center gap-1.5 mb-4">
+            <Dumbbell className="w-3 h-3 text-caesar-blue" />
+            <span className="text-[10px] text-caesar-muted font-space">{day.targetMuscles}</span>
           </div>
-          <div className="flex items-center gap-1.5 glass rounded-lg px-2.5 py-1.5">
-            <Zap className="w-3 h-3 text-caesar-blue" />
-            <span className="text-[11px] font-space font-medium text-caesar-muted">{exercise.reps}</span>
+
+          {/* Progress bar */}
+          <div className="mb-3">
+            <div className="flex items-center justify-between text-[10px] font-space mb-1">
+              <span className="text-caesar-muted">{day.exercises.length} exercises</span>
+              <span className={isComplete ? 'text-caesar-cyan font-semibold' : 'text-caesar-muted'}>{progress}%</span>
+            </div>
+            <div className="w-full h-1.5 bg-caesar-darker rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-700 ${
+                  isComplete
+                    ? 'bg-gradient-to-r from-caesar-cyan to-caesar-blue'
+                    : 'bg-gradient-to-r from-caesar-blue via-caesar-purple to-caesar-cyan'
+                }`}
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </div>
+
+          {/* CTA */}
+          <div className={`w-full py-2.5 rounded-xl text-sm font-space font-semibold flex items-center justify-center gap-2 transition-all duration-300 ${
+            isComplete
+              ? 'bg-caesar-cyan/15 text-caesar-cyan border border-caesar-cyan/25'
+              : 'bg-gradient-to-r from-caesar-blue via-caesar-purple to-caesar-cyan text-white group-hover:shadow-lg group-hover:shadow-caesar-blue/20'
+          }`}>
+            {isComplete ? (
+              <><Trophy className="w-4 h-4" /> Day Complete</>
+            ) : (
+              <><Play className="w-4 h-4" /> Start Day {day.day}<ChevronRight className="w-4 h-4" /></>
+            )}
+          </div>
+        </div>
+      </button>
+
+      {/* Completion celebration */}
+      {justCompleted && (
+        <div className="absolute inset-0 pointer-events-none rounded-2xl">
+          <div className="absolute inset-0 bg-caesar-cyan/10 rounded-2xl animate-pulse" style={{ animationDuration: '1s', animationIterationCount: '2' }} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Exercise Row (in day detail view) ────────────────────────────────
+
+function ExerciseRow({ exercise, isCompleted, onToggle }: {
+  exercise: Exercise;
+  isCompleted: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <div className={`glass rounded-xl overflow-hidden transition-all duration-300 ${isCompleted ? 'ring-1 ring-caesar-cyan/40' : ''}`}>
+      <div className="flex items-stretch gap-0">
+        {/* Image */}
+        <div className="relative w-24 sm:w-28 shrink-0 overflow-hidden">
+          <img
+            src={exercise.image}
+            alt={exercise.name}
+            className="w-full h-full object-cover"
+            loading="lazy"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent to-caesar-dark/80" />
+          {isCompleted && (
+            <div className="absolute inset-0 bg-caesar-cyan/20 flex items-center justify-center">
+              <Check className="w-5 h-5 text-caesar-cyan" />
+            </div>
+          )}
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 p-4 flex flex-col justify-center">
+          <div className="flex items-start justify-between mb-1.5">
+            <h4 className="text-sm font-clash font-semibold text-caesar-white">{exercise.name}</h4>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-caesar-blue/10 text-caesar-blue font-space font-medium border border-caesar-blue/20 shrink-0 ml-2">
+              {exercise.targetMuscle}
+            </span>
+          </div>
+
+          <p className="text-[10px] text-caesar-muted font-space leading-relaxed mb-2.5 line-clamp-2">
+            {exercise.tip}
+          </p>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[10px] font-space font-medium px-2 py-1 rounded-md bg-caesar-purple/10 text-caesar-purple border border-caesar-purple/15">
+              {exercise.sets} sets x {exercise.reps}
+            </span>
+            <span className="text-[10px] font-space font-medium px-2 py-1 rounded-md bg-caesar-cyan/10 text-caesar-cyan border border-caesar-cyan/15 flex items-center gap-1">
+              <Flame className="w-2.5 h-2.5" /> {exercise.caloriesPerSet * exercise.sets} cal
+            </span>
+            <span className="text-[10px] font-space font-medium px-2 py-1 rounded-md bg-caesar-blue/10 text-caesar-blue border border-caesar-blue/15 flex items-center gap-1">
+              <Clock className="w-2.5 h-2.5" /> {exercise.duration}
+            </span>
           </div>
         </div>
 
-        {/* Action Button */}
+        {/* Toggle button */}
         <button
-          onClick={() => {
-            setCompleted(!completed);
-            onAction(exercise);
-          }}
-          className={`w-full py-3 rounded-xl text-sm font-space font-semibold transition-all duration-300 flex items-center justify-center gap-2 ${
-            completed
-              ? 'bg-caesar-cyan/20 text-caesar-cyan border border-caesar-cyan/30'
-              : 'bg-gradient-to-r from-caesar-blue via-caesar-purple to-caesar-cyan text-white hover:shadow-lg hover:shadow-caesar-blue/20'
+          onClick={onToggle}
+          className={`w-12 sm:w-14 flex items-center justify-center shrink-0 transition-all duration-300 ${
+            isCompleted
+              ? 'bg-caesar-cyan/20 hover:bg-caesar-cyan/30'
+              : 'bg-caesar-darker hover:bg-gradient-to-b hover:from-caesar-blue/20 hover:to-caesar-purple/20'
           }`}
         >
-          {completed ? (
-            <><Check className="w-4 h-4" /> Completed</>
+          {isCompleted ? (
+            <Check className="w-5 h-5 text-caesar-cyan" />
           ) : (
-            <><Play className="w-4 h-4" /> Start Exercise</>
+            <Play className="w-5 h-5 text-caesar-muted" />
           )}
         </button>
       </div>
@@ -174,276 +343,144 @@ function ExerciseCard({ exercise, onAction }: { exercise: Exercise; onAction: (e
   );
 }
 
-// ── Program Card ───────────────────────────────────────────────────
+// ── Day Detail View ──────────────────────────────────────────────────
 
-function ProgramCard({ program, onSelect }: { program: WorkoutProgram; onSelect: (p: WorkoutProgram) => void }) {
-  const { ref, isInView } = useInView(0.1);
-
-  const goalColor: Record<string, string> = {
-    'beginner-transform': 'from-caesar-cyan/20 to-caesar-blue/20 border-caesar-cyan/30',
-    'muscle-gain': 'from-caesar-blue/20 to-caesar-purple/20 border-caesar-blue/30',
-    'fat-loss': 'from-caesar-purple/20 to-caesar-cyan/20 border-caesar-purple/30',
-    'full-body': 'from-caesar-cyan/20 to-caesar-purple/20 border-caesar-cyan/30',
-  };
-
-  const diffBadge = {
-    beginner: 'bg-caesar-cyan/10 text-caesar-cyan border-caesar-cyan/20',
-    intermediate: 'bg-caesar-purple/10 text-caesar-purple border-caesar-purple/20',
-    advanced: 'bg-caesar-blue/10 text-caesar-blue border-caesar-blue/20',
-  };
+function DayDetail({ day, isComplete, progress, completedExercises, onToggleExercise, onCompleteDay, onBack }: {
+  day: WorkoutDay;
+  isComplete: boolean;
+  progress: number;
+  completedExercises: Set<string>;
+  onToggleExercise: (id: string) => void;
+  onCompleteDay: () => void;
+  onBack: () => void;
+}) {
+  const doneCount = day.exercises.filter((e) => completedExercises.has(e.id)).length;
 
   return (
-    <div
-      ref={ref}
-      className={`group relative glass rounded-2xl overflow-hidden transition-all duration-700 hover:scale-[1.02] ${
-        isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-      }`}
-    >
-      {/* Image */}
-      <div className="relative h-40 overflow-hidden">
-        <img
-          src={program.image}
-          alt={program.name}
-          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-          loading="lazy"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-caesar-dark via-caesar-dark/60 to-transparent" />
-        <div className={`absolute inset-0 bg-gradient-to-r ${goalColor[program.goal] || ''} opacity-50`} />
+    <div className="animate-fade-in">
+      {/* Back button */}
+      <button onClick={onBack} className="flex items-center gap-2 text-sm font-space text-caesar-muted hover:text-caesar-white transition-colors mb-6">
+        <ChevronRight className="w-4 h-4 rotate-180" /> Back to Week
+      </button>
 
-        {/* Duration badge */}
-        <div className="absolute top-3 left-3 flex items-center gap-1.5 glass rounded-lg px-3 py-1.5">
-          <Calendar className="w-3.5 h-3.5 text-caesar-cyan" />
-          <span className="text-xs font-space font-medium text-caesar-white">{program.duration}</span>
-        </div>
-
-        {/* Difficulty badge */}
-        <div className={`absolute top-3 right-3 px-2.5 py-1 rounded-lg text-[10px] font-space font-semibold uppercase border ${diffBadge[program.difficulty]}`}>
-          {program.difficulty}
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="p-5">
-        <h3 className="text-lg font-clash font-semibold text-caesar-white mb-2 group-hover:text-gradient-premium transition-colors">
-          {program.name}
-        </h3>
-        <p className="text-xs text-caesar-muted font-space leading-relaxed mb-4 line-clamp-2">
-          {program.description}
-        </p>
-
-        {/* Stats row */}
-        <div className="grid grid-cols-3 gap-2 mb-4">
-          <div className="glass rounded-lg p-2.5 text-center">
-            <p className="text-lg font-clash font-bold text-caesar-cyan">{program.days}</p>
-            <p className="text-[10px] text-caesar-muted font-space">Days</p>
-          </div>
-          <div className="glass rounded-lg p-2.5 text-center">
-            <p className="text-lg font-clash font-bold text-caesar-purple">{program.schedule[0]?.calories || 0}+</p>
-            <p className="text-[10px] text-caesar-muted font-space">Cal/Day</p>
-          </div>
-          <div className="glass rounded-lg p-2.5 text-center">
-            <p className="text-lg font-clash font-bold text-caesar-blue">{program.schedule[0]?.duration || '0'}</p>
-            <p className="text-[10px] text-caesar-muted font-space">Min/Day</p>
-          </div>
-        </div>
-
-        <button
-          onClick={() => onSelect(program)}
-          className="w-full py-3 rounded-xl text-sm font-space font-semibold bg-gradient-to-r from-caesar-blue via-caesar-purple to-caesar-cyan text-white flex items-center justify-center gap-2 hover:shadow-lg hover:shadow-caesar-blue/20 transition-all duration-300 group/btn"
-        >
-          View Plan <ChevronRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ── Program Detail Modal ───────────────────────────────────────────
-
-function ProgramModal({ program, onClose }: { program: WorkoutProgram | null; onClose: () => void }) {
-  if (!program) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-caesar-black/80 backdrop-blur-xl" onClick={onClose} />
-      <div className="relative glass-strong rounded-3xl max-w-2xl w-full max-h-[85vh] overflow-y-auto border border-caesar-border/50 animate-scale-in">
-        <button onClick={onClose} className="absolute top-4 right-4 p-2 rounded-lg hover:bg-caesar-border/30 transition-colors z-10">
-          <X className="w-5 h-5 text-caesar-muted" />
-        </button>
-
-        {/* Header */}
-        <div className="relative h-44 overflow-hidden rounded-t-3xl">
-          <img src={program.image} alt={program.name} className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-caesar-dark via-caesar-dark/50 to-transparent" />
-          <div className="absolute bottom-5 left-6">
-            <h3 className="text-2xl font-clash font-bold text-caesar-white">{program.name}</h3>
-            <p className="text-sm text-caesar-muted font-space mt-1">{program.description}</p>
-          </div>
-        </div>
-
-        {/* Schedule */}
-        <div className="p-6">
-          <div className="flex items-center gap-2 mb-5">
-            <Calendar className="w-5 h-5 text-caesar-cyan" />
-            <h4 className="text-lg font-clash font-semibold text-caesar-white">Weekly Schedule</h4>
-          </div>
-
-          <div className="space-y-3">
-            {program.schedule.map((day) => {
-              const dayExercises = day.exercises.map((id) => getExerciseById(id)).filter(Boolean) as Exercise[];
-              return (
-                <div key={day.day} className="glass rounded-xl p-4 group/day hover:border-caesar-blue/30 transition-all">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-caesar-blue/20 to-caesar-purple/20 flex items-center justify-center">
-                        <span className="text-xs font-clash font-bold text-caesar-blue">D{day.day}</span>
-                      </div>
-                      <div>
-                        <h5 className="text-sm font-clash font-semibold text-caesar-white">{day.title}</h5>
-                        <div className="flex items-center gap-3 mt-0.5">
-                          <span className="text-[10px] font-space text-caesar-muted flex items-center gap-1">
-                            <Clock className="w-3 h-3" /> {day.duration}
-                          </span>
-                          <span className="text-[10px] font-space text-caesar-cyan flex items-center gap-1">
-                            <Flame className="w-3 h-3" /> {day.calories} cal
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    {day.exercises.length === 0 && (
-                      <span className="text-xs font-space text-caesar-muted glass rounded-lg px-2.5 py-1">Rest Day</span>
-                    )}
-                  </div>
-
-                  {dayExercises.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {dayExercises.map((ex) => (
-                        <span key={ex.id} className="text-[10px] font-space font-medium px-2.5 py-1 rounded-lg bg-caesar-blue/10 text-caesar-blue border border-caesar-blue/20">
-                          {ex.name}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          <button
-            onClick={onClose}
-            className="w-full mt-6 py-3.5 rounded-xl text-sm font-space font-semibold bg-gradient-to-r from-caesar-blue via-caesar-purple to-caesar-cyan text-white flex items-center justify-center gap-2 hover:shadow-lg hover:shadow-caesar-blue/20 transition-all"
-          >
-            <Play className="w-4 h-4" /> Start Program <ArrowRight className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── Progress Tracker ───────────────────────────────────────────────
-
-function ProgressTracker({ completedCount, totalExercises }: { completedCount: number; totalExercises: number }) {
-  const streak = 5;
-  const weeklyGoal = 5;
-  const weeklyDone = 3;
-  const totalCalories = completedCount * 85;
-  const pct = totalExercises > 0 ? Math.round((completedCount / totalExercises) * 100) : 0;
-
-  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  const completed = [true, true, true, false, false, false, false];
-
-  return (
-    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      {/* Streak */}
-      <div className="glass-strong rounded-2xl p-5 relative overflow-hidden group hover:scale-[1.02] transition-all duration-300">
-        <div className="absolute top-0 right-0 w-24 h-24 bg-caesar-cyan/5 rounded-full blur-2xl" />
-        <div className="relative">
-          <div className="flex items-center gap-2 mb-3">
-            <Flame className="w-5 h-5 text-orange-400" />
-            <span className="text-xs font-space font-medium text-caesar-muted uppercase tracking-wider">Streak</span>
-          </div>
-          <div className="text-3xl font-clash font-bold text-caesar-white mb-1">{streak} Days</div>
-          <div className="w-full h-2 bg-caesar-darker rounded-full overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-orange-500 to-yellow-400 rounded-full transition-all duration-1000" style={{ width: `${(streak / 7) * 100}%` }} />
-          </div>
-        </div>
-      </div>
-
-      {/* Weekly Consistency */}
-      <div className="glass-strong rounded-2xl p-5 relative overflow-hidden group hover:scale-[1.02] transition-all duration-300">
-        <div className="absolute top-0 right-0 w-24 h-24 bg-caesar-blue/5 rounded-full blur-2xl" />
-        <div className="relative">
-          <div className="flex items-center gap-2 mb-3">
-            <Calendar className="w-5 h-5 text-caesar-blue" />
-            <span className="text-xs font-space font-medium text-caesar-muted uppercase tracking-wider">This Week</span>
-          </div>
-          <div className="text-3xl font-clash font-bold text-caesar-white mb-2">{weeklyDone}/{weeklyGoal}</div>
-          <div className="flex gap-1.5">
-            {days.map((d, i) => (
-              <div key={d} className="flex flex-col items-center gap-1">
-                <div className={`w-6 h-6 rounded-md flex items-center justify-center text-[8px] font-space font-bold ${completed[i] ? 'bg-caesar-blue/30 text-caesar-blue' : 'bg-caesar-darker text-caesar-muted'}`}>
-                  {completed[i] ? <Check className="w-3 h-3" /> : d[0]}
-                </div>
+      {/* Day header */}
+      <div className="glass-strong rounded-2xl overflow-hidden mb-6">
+        <div className="relative h-40 overflow-hidden">
+          <img src={day.image} alt={day.title} className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-caesar-dark via-caesar-dark/60 to-transparent" />
+          <div className="absolute bottom-5 left-6 right-6">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-caesar-blue to-caesar-purple flex items-center justify-center">
+                <span className="text-xs font-clash font-bold text-white">D{day.day}</span>
               </div>
-            ))}
+              {day.isRest && (
+                <span className="text-[10px] px-2 py-1 rounded-full glass text-caesar-muted font-space font-medium">Rest Day</span>
+              )}
+            </div>
+            <h3 className="text-xl font-clash font-bold text-caesar-white">Day {day.day}: {day.title}</h3>
+            <p className="text-xs text-caesar-muted font-space mt-1">{day.subtitle}</p>
           </div>
         </div>
-      </div>
 
-      {/* Calories Burned */}
-      <div className="glass-strong rounded-2xl p-5 relative overflow-hidden group hover:scale-[1.02] transition-all duration-300">
-        <div className="absolute top-0 right-0 w-24 h-24 bg-caesar-purple/5 rounded-full blur-2xl" />
-        <div className="relative">
-          <div className="flex items-center gap-2 mb-3">
-            <Zap className="w-5 h-5 text-caesar-purple" />
-            <span className="text-xs font-space font-medium text-caesar-muted uppercase tracking-wider">Calories</span>
+        {/* Day stats */}
+        <div className="p-5">
+          <div className="grid grid-cols-4 gap-3 mb-4">
+            <div className="glass rounded-lg p-2.5 text-center">
+              <div className="flex items-center justify-center gap-1 mb-0.5">
+                <Clock className="w-3 h-3 text-caesar-cyan" />
+              </div>
+              <p className="text-sm font-clash font-bold text-caesar-white">{day.duration}</p>
+              <p className="text-[9px] text-caesar-muted font-space">Duration</p>
+            </div>
+            <div className="glass rounded-lg p-2.5 text-center">
+              <div className="flex items-center justify-center gap-1 mb-0.5">
+                <Flame className="w-3 h-3 text-orange-400" />
+              </div>
+              <p className="text-sm font-clash font-bold text-caesar-white">{day.calories}</p>
+              <p className="text-[9px] text-caesar-muted font-space">Calories</p>
+            </div>
+            <div className="glass rounded-lg p-2.5 text-center">
+              <div className="flex items-center justify-center gap-1 mb-0.5">
+                <Dumbbell className="w-3 h-3 text-caesar-purple" />
+              </div>
+              <p className="text-sm font-clash font-bold text-caesar-white">{day.exercises.length}</p>
+              <p className="text-[9px] text-caesar-muted font-space">Exercises</p>
+            </div>
+            <div className="glass rounded-lg p-2.5 text-center">
+              <div className="flex items-center justify-center gap-1 mb-0.5">
+                <TrendingUp className="w-3 h-3 text-caesar-blue" />
+              </div>
+              <p className="text-sm font-clash font-bold text-caesar-white">{progress}%</p>
+              <p className="text-[9px] text-caesar-muted font-space">Done</p>
+            </div>
           </div>
-          <div className="text-3xl font-clash font-bold text-gradient-premium">{totalCalories}</div>
-          <p className="text-[10px] text-caesar-muted font-space mt-1">Estimated from completed exercises</p>
-        </div>
-      </div>
 
-      {/* Progress */}
-      <div className="glass-strong rounded-2xl p-5 relative overflow-hidden group hover:scale-[1.02] transition-all duration-300">
-        <div className="absolute top-0 right-0 w-24 h-24 bg-caesar-cyan/5 rounded-full blur-2xl" />
-        <div className="relative">
-          <div className="flex items-center gap-2 mb-3">
-            <TrendingUp className="w-5 h-5 text-caesar-cyan" />
-            <span className="text-xs font-space font-medium text-caesar-muted uppercase tracking-wider">Progress</span>
-          </div>
-          <div className="text-3xl font-clash font-bold text-caesar-cyan mb-2">{pct}%</div>
+          {/* Progress bar */}
           <div className="w-full h-2 bg-caesar-darker rounded-full overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-caesar-blue via-caesar-purple to-caesar-cyan rounded-full transition-all duration-1000" style={{ width: `${pct}%` }} />
+            <div
+              className={`h-full rounded-full transition-all duration-700 ${
+                isComplete ? 'bg-gradient-to-r from-caesar-cyan to-caesar-blue' : 'bg-gradient-to-r from-caesar-blue via-caesar-purple to-caesar-cyan'
+              }`}
+              style={{ width: `${progress}%` }}
+            />
           </div>
         </div>
       </div>
+
+      {/* Exercise list */}
+      <div className="space-y-3 mb-8">
+        <div className="flex items-center justify-between mb-1">
+          <h4 className="text-sm font-clash font-semibold text-caesar-white">Exercises ({doneCount}/{day.exercises.length} done)</h4>
+        </div>
+        {day.exercises.map((exercise) => (
+          <ExerciseRow
+            key={exercise.id}
+            exercise={exercise}
+            isCompleted={completedExercises.has(exercise.id)}
+            onToggle={() => onToggleExercise(exercise.id)}
+          />
+        ))}
+      </div>
+
+      {/* Complete Day button */}
+      <button
+        onClick={() => {
+          if (!isComplete) onCompleteDay();
+        }}
+        disabled={isComplete}
+        className={`w-full py-4 rounded-xl text-base font-space font-semibold flex items-center justify-center gap-2 transition-all duration-300 ${
+          isComplete
+            ? 'bg-caesar-cyan/15 text-caesar-cyan border border-caesar-cyan/25'
+            : 'bg-gradient-to-r from-caesar-blue via-caesar-purple to-caesar-cyan text-white hover:shadow-lg hover:shadow-caesar-blue/30 hover:scale-[1.01]'
+        }`}
+      >
+        {isComplete ? (
+          <><Trophy className="w-5 h-5" /> Day {day.day} Complete!</>
+        ) : (
+          <><Star className="w-5 h-5" /> Complete Day {day.day}</>
+        )}
+      </button>
     </div>
   );
 }
 
-// ── Main Section ───────────────────────────────────────────────────
+// ── Main Section ────────────────────────────────────────────────────
 
 export default function WorkoutsSection() {
-  const [activeCategory, setActiveCategory] = useState<WorkoutGoal>('beginner-transform');
-  const [selectedProgram, setSelectedProgram] = useState<WorkoutProgram | null>(null);
-  const [completedExercises, setCompletedExercises] = useState<Set<string>>(new Set());
+  const {
+    completedDays,
+    completedExercises,
+    toggleExercise,
+    completeDay,
+    resetWeek,
+    dayProgress,
+    isDayComplete,
+    streak,
+    totalCalories,
+  } = useDayProgress();
+
+  const [selectedDay, setSelectedDay] = useState<WorkoutDay | null>(null);
   const { ref: headerRef, isInView: headerInView } = useInView(0.1);
-  const { ref: progRef, isInView: progInView } = useInView(0.1);
-
-  const filteredExercises = getExercisesByGoal(activeCategory);
-
-  const handleExerciseAction = (exercise: Exercise) => {
-    setCompletedExercises((prev) => {
-      const next = new Set(prev);
-      if (next.has(exercise.id)) {
-        next.delete(exercise.id);
-      } else {
-        next.add(exercise.id);
-      }
-      return next;
-    });
-  };
 
   return (
     <section id="workouts" className="relative section-padding overflow-hidden">
@@ -457,66 +494,66 @@ export default function WorkoutsSection() {
       <div className="relative z-10 container-premium mx-auto">
         {/* Header */}
         <div ref={headerRef} className={`text-center mb-12 transition-all duration-700 ${headerInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-          <div className="inline-flex items-center gap-2 glass-blue rounded-full px-4 py-2 mb-6">
-            <Dumbbell className="w-4 h-4 text-caesar-blue" />
-            <span className="text-xs font-space font-medium text-caesar-blue uppercase tracking-wider">Home Workouts</span>
+          <div className="inline-flex items-center gap-2 glass-cyan rounded-full px-4 py-2 mb-6">
+            <Calendar className="w-4 h-4 text-caesar-cyan" />
+            <span className="text-xs font-space font-medium text-caesar-cyan uppercase tracking-wider">7-Day Beginner Plan</span>
           </div>
           <h2 className="heading-xl mb-4">
-            <span className="text-caesar-white">Transform at Home.</span>
+            <span className="text-caesar-white">One Day at a Time.</span>
             <br />
-            <span className="text-gradient-premium">Zero Equipment Needed.</span>
+            <span className="text-gradient-premium">No Equipment. No Confusion.</span>
           </h2>
           <p className="text-body max-w-2xl mx-auto font-space">
-            Bodyweight workouts designed for students, hostel users, and anyone who wants to build muscle and burn fat without a gym.
+            Follow this simple 7-day plan. Just 4-6 exercises per day. Home workouts only. Start Day 1 and build your transformation.
           </p>
         </div>
 
-        {/* Progress Tracker */}
-        <div className="mb-12">
-          <ProgressTracker completedCount={completedExercises.size} totalExercises={filteredExercises.length} />
-        </div>
+        {selectedDay ? (
+          /* ── Day Detail View ── */
+          <DayDetail
+            day={selectedDay}
+            isComplete={isDayComplete(selectedDay.day)}
+            progress={dayProgress(selectedDay)}
+            completedExercises={completedExercises}
+            onToggleExercise={toggleExercise}
+            onCompleteDay={() => completeDay(selectedDay.day)}
+            onBack={() => setSelectedDay(null)}
+          />
+        ) : (
+          /* ── Week Overview ── */
+          <>
+            {/* Progress Header */}
+            <ProgressHeader
+              streak={streak}
+              totalCalories={totalCalories}
+              completedDays={completedDays}
+              onReset={resetWeek}
+            />
 
-        {/* Category Tabs */}
-        <div className="mb-8">
-          <CategoryNav active={activeCategory} onChange={setActiveCategory} />
-        </div>
-
-        {/* Exercise Grid */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-20">
-          {filteredExercises.map((exercise) => (
-            <ExerciseCard key={exercise.id} exercise={exercise} onAction={handleExerciseAction} />
-          ))}
-        </div>
-
-        {/* Divider */}
-        <div className="divider mb-20" />
-
-        {/* Workout Programs */}
-        <div ref={progRef} className={`transition-all duration-700 ${progInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 glass-purple rounded-full px-4 py-2 mb-6">
-              <Trophy className="w-4 h-4 text-caesar-purple" />
-              <span className="text-xs font-space font-medium text-caesar-purple uppercase tracking-wider">Workout Programs</span>
+            {/* Day Cards */}
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+              {weekPlan.map((day) => (
+                <DayCard
+                  key={day.day}
+                  day={day}
+                  isComplete={isDayComplete(day.day)}
+                  progress={dayProgress(day)}
+                  onSelect={setSelectedDay}
+                />
+              ))}
             </div>
-            <h2 className="heading-lg mb-4">
-              <span className="text-caesar-white">Structured </span>
-              <span className="text-gradient-premium">Transformation Plans</span>
-            </h2>
-            <p className="text-body max-w-xl mx-auto font-space">
-              Follow proven programs designed to take you from beginner to transformed. Pick your goal and start today.
-            </p>
-          </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {workoutPrograms.map((program) => (
-              <ProgramCard key={program.id} program={program} onSelect={setSelectedProgram} />
-            ))}
-          </div>
-        </div>
+            {/* Motivation footer */}
+            <div className="mt-12 text-center">
+              <div className="glass-strong rounded-2xl p-6 max-w-lg mx-auto">
+                <Zap className="w-6 h-6 text-caesar-cyan mx-auto mb-3" />
+                <p className="text-sm font-clash font-semibold text-caesar-white mb-1">Tap any day to start</p>
+                <p className="text-xs text-caesar-muted font-space">Complete each exercise, then mark the day done. Build your streak one day at a time.</p>
+              </div>
+            </div>
+          </>
+        )}
       </div>
-
-      {/* Program Detail Modal */}
-      <ProgramModal program={selectedProgram} onClose={() => setSelectedProgram(null)} />
     </section>
   );
 }
